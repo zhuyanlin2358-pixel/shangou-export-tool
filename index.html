@@ -332,9 +332,8 @@
     .prize-product-placeholder img.prize-img-inner {
       position: absolute; top: 50%; left: 50%;
       transform: translate(-50%, -50%) scale(1);
-      max-width: none; max-height: none;
+      max-width: 80%; max-height: 80%;
       width: auto; height: auto;
-      min-width: 100%; min-height: 100%;
       object-fit: contain;
       user-select: none; -webkit-user-drag: none;
       display: none;
@@ -1229,6 +1228,8 @@
     const img=document.getElementById('empty-illus');
     img.onload=function(){img._offsetX=0;img._offsetY=0;img._scale=1;img.style.transform='translate(-50%,-50%) scale(1)';const slider=document.getElementById('c-empty-scale');if(slider){slider.value=100;document.getElementById('c-empty-scale-val').textContent='100%';}};
     img.src=url;
+    // 同步到实时预览区
+    var previewImg=document.getElementById('preview-empty-img');if(previewImg){previewImg.src=url;previewImg.style.transform='translate(-50%,-50%)';}
     document.getElementById('c-empty-img-name').textContent='\u5F53\u524D\uFF1A'+file.name;
   }
 
