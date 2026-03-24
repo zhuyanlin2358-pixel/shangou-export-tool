@@ -107,9 +107,9 @@
     .slot-full .remain-layer { position:absolute;right:46px;top:192px;font-size:14px;color:var(--slot-remain-color,#666);text-align:center;width:194px;z-index:3; }
 
     .slot-empty { width:441px;height:142px;border-radius:12px;background:#FFFFFF;border:1px solid rgba(0,0,0,0.06);display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;position:relative; }
-    .slot-empty .empty-img-wrap { width:230.5px;height:94px;position:relative;overflow:hidden;background:repeating-conic-gradient(#E8E8E8 0% 25%,#F8F8F8 0% 50%) 0 0/8px 8px;flex-shrink:0;cursor:grab; }
+    .slot-empty .empty-img-wrap { width:100%;height:110px;position:relative;overflow:hidden;background:repeating-conic-gradient(#E8E8E8 0% 25%,#F8F8F8 0% 50%) 0 0/8px 8px;flex-shrink:0;cursor:grab; }
     .slot-empty .empty-img-wrap:active { cursor:grabbing; }
-    .slot-empty .empty-img-wrap img { position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);max-width:none;max-height:none;width:auto;height:auto;display:block;user-select:none;-webkit-user-drag:none; }
+    .slot-empty .empty-img-wrap img { position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);max-width:100%;max-height:100%;width:auto;height:auto;display:block;user-select:none;-webkit-user-drag:none;object-fit:contain; }
     .slot-empty .empty-text { margin-top:5px;font-family:'PingFang SC','Microsoft YaHei',sans-serif;font-size:13px;color:#999999;text-align:center;white-space:nowrap;flex-shrink:0; }
 
     .btn-standalone { width:194px;height:80px;border-radius:40px;display:flex;align-items:center;justify-content:center;font-family:'PingFang SC',sans-serif;font-size:30px;font-weight:400;color:#FFFFFF; }
@@ -673,8 +673,8 @@
               <div id="preview-prize-slot-3" style="width:124px;height:124px;display:flex;align-items:center;justify-content:center;flex-shrink:0"></div>
             </div>
             <div class="empty-overlay" id="preview-empty-overlay" style="display:none;position:absolute;left:19px;top:76px;width:441px;height:142px;border-radius:20px;z-index:2;background:#fff;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;">
-              <div class="empty-img-wrap" style="width:230.5px;height:94px;position:relative;overflow:hidden;background:repeating-conic-gradient(#E8E8E8 0% 25%,#F8F8F8 0% 50%) 0 0/8px 8px;flex-shrink:0;">
-                <img id="preview-empty-img" src="images/empty-illus.png" alt="空态插图" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:auto;height:auto;max-width:none;max-height:none;">
+              <div class="empty-img-wrap" style="width:100%;height:110px;position:relative;overflow:hidden;background:repeating-conic-gradient(#E8E8E8 0% 25%,#F8F8F8 0% 50%) 0 0/8px 8px;flex-shrink:0;">
+                <img id="preview-empty-img" src="images/empty-illus.png" alt="空态插图" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:auto;height:auto;max-width:100%;max-height:100%;object-fit:contain;">
               </div>
               <div style="margin-top:5px;font-family:'PingFang SC',sans-serif;font-size:13px;color:#999;white-space:nowrap;" id="preview-empty-text">活动太火爆，请稍后重试...</div>
             </div>
