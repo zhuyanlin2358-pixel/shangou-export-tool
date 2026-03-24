@@ -38,7 +38,7 @@
     .preset-btn.recommended::after { content: '推荐'; position: absolute; top: -8px; right: -4px; background: #FF3060; color: #fff; font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 6px; letter-spacing: 0.3px; pointer-events: none; box-shadow: 0 1px 4px rgba(255,48,96,0.35); line-height: 14px; }
     .divider { border: none; border-top: 1px solid #F0F0F0; margin: 12px 0; }
     .color-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-    .color-row label { font-size: 12px; color: #555; flex-shrink: 0; width: 52px; white-space: nowrap; line-height: 1.4; }
+    .color-row label { font-size: 12px; color: #555; flex-shrink: 0; max-width: 80px; white-space: nowrap; line-height: 1.4; }
     .color-row input[type=color] { width: 32px; height: 24px; border: 1px solid #ddd; border-radius: 4px; padding: 1px; cursor: pointer; flex-shrink: 0; }
     .color-row input[type=text] { flex: 1; min-width: 0; padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; }
     .color-row select { flex: 1; min-width: 0; }
@@ -444,13 +444,19 @@
       <span class="dot"></span>自定义颜色<span class="arrow">▾</span>
     </div>
     <div class="panel-group-body">
-      <div class="color-row"><label>主按钮 起始色</label><input type="color" id="c-btn-from"   value="#FF3060" oninput="syncCustom()"></div>
-      <div class="color-row"><label>主按钮 结束色</label><input type="color" id="c-btn-to"     value="#FF7030" oninput="syncCustom()"></div>
-      <div class="color-row"><label>禁用按钮 起始色</label><input type="color" id="c-dis-from" value="#FFBDD0" oninput="syncCustom()"></div>
-      <div class="color-row"><label>禁用按钮 结束色</label><input type="color" id="c-dis-to"   value="#FFD0B0" oninput="syncCustom()"></div>
-      <div class="color-row"><label>背景叠色 起始</label><input type="color" id="c-slot-from"  value="#FFE8F5" oninput="syncCustom()"></div>
-      <div class="color-row"><label>背景叠色 结束</label><input type="color" id="c-slot-to"    value="#FFB0D8" oninput="syncCustom()"></div>
-      <div class="color-row"><label>链接文字色</label><input type="color" id="c-links-color"   value="#8f8f8f" oninput="syncCustom()"></div>
+      <div style="font-size:10px;color:#aaa;margin-bottom:6px">主按钮渐变</div>
+      <div class="color-row"><label>起始色</label><input type="color" id="c-btn-from"   value="#FF3060" oninput="syncCustom()"></div>
+      <div class="color-row"><label>结束色</label><input type="color" id="c-btn-to"     value="#FF7030" oninput="syncCustom()"></div>
+      <hr class="divider">
+      <div style="font-size:10px;color:#aaa;margin-bottom:6px">禁用按钮渐变</div>
+      <div class="color-row"><label>起始色</label><input type="color" id="c-dis-from" value="#FFBDD0" oninput="syncCustom()"></div>
+      <div class="color-row"><label>结束色</label><input type="color" id="c-dis-to"   value="#FFD0B0" oninput="syncCustom()"></div>
+      <hr class="divider">
+      <div style="font-size:10px;color:#aaa;margin-bottom:6px">背景叠色渐变</div>
+      <div class="color-row"><label>起始色</label><input type="color" id="c-slot-from"  value="#FFE8F5" oninput="syncCustom()"></div>
+      <div class="color-row"><label>结束色</label><input type="color" id="c-slot-to"    value="#FFB0D8" oninput="syncCustom()"></div>
+      <hr class="divider">
+      <div class="color-row"><label>链接文字</label><input type="color" id="c-links-color"   value="#8f8f8f" oninput="syncCustom()"></div>
     </div>
   </div>
 
