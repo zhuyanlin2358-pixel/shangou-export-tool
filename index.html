@@ -21,7 +21,7 @@
       --slot-tint-from:    #FFE8F5;
       --slot-tint-to:      #FFB0D8;
       --slot-links-color:  #8f8f8f;
-      --slot-title-color:  #FFFFFF;
+      --slot-title-color:  #f00068;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif; background: #F2F3F7; min-height: 100vh; }
@@ -493,7 +493,7 @@
     </div>
     <div class="panel-group-body">
       <div class="color-row"><label>主标题文案</label><input type="text" id="c-title-text" value="天天抽免单" oninput="syncTitleText()"></div>
-      <div class="color-row"><label>主标题文字色</label><input type="color" id="c-title-color" value="#ffffff" oninput="syncCustom()"></div>
+      <div class="color-row"><label>主标题文字色</label><input type="color" id="c-title-color" value="#f00068" oninput="syncCustom()"></div>
     </div>
   </div>
 
@@ -1015,7 +1015,7 @@
 
   /* ===== 配色预设 ===== */
   const PRESETS = {
-    pink:   {from:'#FF5518',to:'#FE10A8',disFrom:'#FFBDD0',disTo:'#FFD0B0',slotFrom:'#FFE1FA',slotTo:'#FFC9F3',linksColor:'#8f8f8f',titleColor:'#FF5518',isDark:false},
+    pink:   {from:'#FF5518',to:'#FE10A8',disFrom:'#FFBDD0',disTo:'#FFD0B0',slotFrom:'#FFE1FA',slotTo:'#FFC9F3',linksColor:'#8f8f8f',titleColor:'#f00068',isDark:false},
     rose:   {from:'#FF1C18',to:'#FE106F',disFrom:'#FFB3CE',disTo:'#FFC8D8',slotFrom:'#FFE1E6',slotTo:'#FFC9D6',linksColor:'#8f8f8f',titleColor:'#FF1C18',isDark:false},
     teal:   {from:'#06B1FF',to:'#0596FD',disFrom:'#A8E6F0',disTo:'#C0F0F8',slotFrom:'#C8F9FF',slotTo:'#81F3FE',linksColor:'#8f8f8f',titleColor:'#06B1FF',isDark:false},
     purple: {from:'#9771FF',to:'#2D30FF',disFrom:'#DDD6FE',disTo:'#EDE9FE',slotFrom:'#E8E6FF',slotTo:'#D4D0FF',linksColor:'#8f8f8f',titleColor:'#9771FF',isDark:false},
@@ -1264,7 +1264,7 @@
     if(srcImg){previewImg.src=srcImg.src;previewImg.style.transform='translate(-50%,-50%)';}
     if(srcText)document.getElementById('preview-empty-text').textContent=srcText.textContent;
     prizeLayer.style.display='none';overlay.style.display='flex';
-    scrollToPreview();showToast('\u5DF2\u9884\u89C8\uFF1A\u8001\u864E\u673A\u7A7A\u6001\u9875');
+    (function(){var w=document.getElementById('preview-card-wrap');if(w){w.scrollIntoView({behavior:'smooth',block:'center'});w.classList.remove('flash');void w.offsetWidth;w.classList.add('flash');setTimeout(function(){w.classList.remove('flash');},600);}})();showToast('\u5DF2\u9884\u89C8\uFF1A\u8001\u864E\u673A\u7A7A\u6001\u9875');
   }
 
   /* 把奖品图 CSS 模板 clone 到老虎机预览区 */
