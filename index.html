@@ -1285,7 +1285,7 @@
     const srcImg=document.getElementById('empty-illus');
     const srcText=document.getElementById('empty-text-el');
     const previewImg=document.getElementById('preview-empty-img');
-    if(srcImg){previewImg.src=srcImg.src;previewImg.style.transform='translate(-50%,-50%)';}
+    if(srcImg){previewImg.src=srcImg.src;previewImg.style.transform=srcImg.style.transform||'translate(-50%,-50%)';}
     if(srcText)document.getElementById('preview-empty-text').textContent=srcText.textContent;
     prizeLayer.style.display='none';overlay.style.display='flex';
     (function(){var w=document.getElementById('preview-card-wrap');if(w){w.scrollIntoView({behavior:'smooth',block:'center'});w.classList.remove('flash');void w.offsetWidth;w.classList.add('flash');setTimeout(function(){w.classList.remove('flash');},600);}})();showToast('\u5DF2\u9884\u89C8\uFF1A\u8001\u864E\u673A\u7A7A\u6001\u9875');
