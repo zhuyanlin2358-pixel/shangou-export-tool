@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>闪购会场组件自助设计工具</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <style>
+    :root {
+      --btn-active-from:   #FF3060;
+      --btn-active-to:     #FF7030;
+      --btn-active-shadow: rgba(255,50,80,0.4);
+      --btn-disabled-from: #FFBDD0;
+      --btn-disabled-to:   #FFD0B0;
+      --slot-tint-from:    #FFE8F5;
+      --slot-tint-to:      #FFB0D8;
+      --slot-links-color:  #8f8f8f;
+      --slot-title-color:  #FFFFFF;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif; background: #F2F3F7; min-height: 100vh; }
+
+    .topbar { position: fixed; top: 0; left: 0; right: 0; height: 56px; background: #fff; border-bottom: 1px solid #E8E8E8; display: flex; align-items: center; padding: 0 24px; gap: 16px; z-index: 1000; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .topbar-title { font-size: 16px; font-weight: 600; color: #1A1A1A; flex: 1; }
+    .topbar-title span { font-size: 12px; font-weight: 400; color: #999; margin-left: 8px; }
+    .btn-export-all { display: flex; align-items: center; gap: 8px; padding: 0 20px; height: 36px; background: linear-gradient(90deg, #FF3060, #FF7030); color: #fff; border: none; border-radius: 18px; font-size: 14px; font-weight: 500; cursor: pointer; transition: opacity 0.2s; white-space: nowrap; }
+    .btn-export-all:hover { opacity: 0.88; }
+    .btn-export-all.loading { opacity: 0.6; pointer-events: none; }
+
+    .sidebar { position: fixed; top: 56px; left: 0; width: 260px; height: calc(100vh - 56px); background: #fff; border-right: 1px solid #E8E8E8; overflow-y: auto; padding: 20px 16px; z-index: 100; }
+    .sidebar h4 { font-size: 13px; font-weight: 600; color: #333; margin-bottom: 12px; }
+    .preset-group-label { font-size: 10px; color: #aaa; margin: 6px 0 4px; font-weight: 500; }
+    .preset-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 4px; }
+    .preset-btn { padding: 6px 4px; border: 1.5px solid #E8E8E8; border-radius: 8px; background: #fff; font-size: 12px; cursor: pointer; transition: all 0.15s; text-align: center; position: relative; overflow: visible; }
+    .preset-btn:hover:not(.preset-disabled) { border-color: #FF3060; color: #FF3060; }
+    .preset-btn.active { border-color: #FF3060; background: #FFF0F3; color: #FF3060; font-weight: 600; }
+    .preset-btn.preset-disabled { opacity: 0.32; cursor: not-allowed; pointer-events: none; border-color: #E8E8E8 !important; color: #bbb !important; background: #fafafa !important; }
+    .preset-btn.recommended::after { content: '推荐'; position: absolute; top: -8px; right: -4px; background: #FF3060; color: #fff; font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 6px; letter-spacing: 0.3px; pointer-events: none; box-shadow: 0 1px 4px rgba(255,48,96,0.35); line-height: 14px; }
+    .divider { border: none; border-top: 1px solid #F0F0F0; margin: 12px 0; }
+    .color-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+    .color-row label { font-size: 12px; color: #555; flex: 1; }
+    .color-row input[type=color] { width: 32px; height: 24px; border: 1px solid #ddd; border-radius: 4px; padding: 1px; cursor: pointer; }
+    .color-row input[type=text] { flex: 1; padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; }
+
+    .main { margin-left: 260px; margin-right: 360px; margin-top: 56px; padding: 24px; }
+
+    .preview-panel { position: fixed; top: 56px; right: 0; width: 360px; height: calc(100vh - 56px); background: #fff; border-left: 1px solid #E8E8E8; display: flex; flex-direction: column; z-index: 100; box-shadow: -2px 0 12px rgba(0,0,0,0.05); }
+    .preview-panel-header { padding: 14px 16px 10px; border-bottom: 1px solid #F0F0F0; flex-shrink: 0; }
+    .preview-panel-header h4 { font-size: 13px; font-weight: 600; color: #333; margin-bottom: 8px; }
+    .bg-swatches { display: flex; flex-wrap: wrap; gap: 6px; }
+    .bg-swatch { width: 28px; height: 28px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; transition: transform 0.15s, border-color 0.15s; flex-shrink: 0; }
+    .bg-swatch:hover { transform: scale(1.15); }
+    .bg-swatch.active { border-color: #FF3060; box-shadow: 0 0 0 2px rgba(255,48,96,0.25); }
+    .preview-panel-body { flex: 1; overflow-y: auto; padding: 16px 12px; display: flex; flex-direction: column; align-items: center; }
+    .page-mock { width: 320px; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.13); background: #f5f5f5; flex-shrink: 0; position: relative; }
+    .page-mock-nav { height: 44px; display: flex; align-items: center; padding: 0 14px; gap: 8px; background: rgba(255,255,255,0.85); backdrop-filter: blur(8px); }
+    .page-mock-nav-dot { width: 8px; height: 8px; border-radius: 50%; background: #ddd; }
+    .page-mock-nav-title { flex: 1; text-align: center; font-size: 13px; font-weight: 600; color: #1a1a1a; margin-right: 24px; }
+    .page-mock-bg { width: 100%; min-height: 60px; padding: 12px; transition: background-color 0.3s; display: flex; flex-direction: column; align-items: center; }
+    #panel-slot-inner-wrap { width: 296px; overflow: visible; border-radius: 8px; flex-shrink: 0; position: absolute; top: 56px; left: 50%; transform: translateX(-50%); display: none; z-index: 10; cursor: grab; }
+    .preview-panel-tip { font-size: 11px; color: #bbb; text-align: center; padding: 10px 0 4px; flex-shrink: 0; }
+
+    .section-title { font-size: 13px; font-weight: 600; color: #888; letter-spacing: 0.5px; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid #E8E8E8; }
+    .export-grid { display: flex; flex-wrap: wrap; gap: 20px; margin-bottom: 40px; }
+    .export-card { background: #fff; border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.07); overflow: hidden; display: flex; flex-direction: column; }
+    .card-preview { background: repeating-conic-gradient(#F0F0F0 0% 25%, #FAFAFA 0% 50%) 0 0 / 16px 16px; display: flex; align-items: center; justify-content: center; padding: 20px; flex: 1; }
+    .card-footer { padding: 12px 16px; border-top: 1px solid #F0F0F0; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .card-info { flex: 1; }
+    .card-name { font-size: 13px; font-weight: 600; color: #1A1A1A; }
+    .card-size { font-size: 11px; color: #999; margin-top: 2px; }
+    .btn-export-single { display: flex; align-items: center; gap: 5px; padding: 0 14px; height: 30px; background: #F5F5F5; color: #333; border: 1px solid #E0E0E0; border-radius: 15px; font-size: 12px; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+    .btn-export-single:hover { background: #FFF0F3; border-color: #FF3060; color: #FF3060; }
+    .btn-export-single.loading { opacity: 0.5; pointer-events: none; }
+    .btn-preview { display:flex;align-items:center;gap:4px;padding:0 12px;height:30px;background:#FFF0F3;color:#FF3060;border:1px solid #FFCCD6;border-radius:15px;font-size:12px;cursor:pointer;transition:all 0.15s;white-space:nowrap; }
+    .btn-preview:hover { background:#FF3060;color:#fff;border-color:#FF3060; }
+    .preview-card-wrap { position:relative; }
+    .preview-badge { position:absolute;top:-10px;left:0;background:#FF3060;color:#fff;font-size:11px;font-weight:600;padding:2px 10px;border-radius:10px 10px 10px 0;z-index:10; }
+    .preview-card-wrap .export-card { border:2px solid #FF3060;box-shadow:0 0 0 4px rgba(255,48,96,0.08); }
+    @keyframes preview-flash { 0%{box-shadow:0 0 0 4px rgba(255,48,96,0.08)} 50%{box-shadow:0 0 0 10px rgba(255,48,96,0.25)} 100%{box-shadow:0 0 0 4px rgba(255,48,96,0.08)} }
+    .preview-card-wrap.flash .export-card { animation:preview-flash 0.5s ease; }
+
+    .slot-bg-only { position:relative;width:750px;height:242px; }
+    .slot-bg-only .bg-layer { position:absolute;left:24px;top:0;width:702px;height:242px;border-radius:20px;background:linear-gradient(120deg,var(--slot-tint-from) 0%,var(--slot-tint-to) 100%); }
+    .slot-bg-only .frame-layer { position:absolute;left:43px;top:76px;width:441px;height:142px;border-radius:20px;background:#FFFFFF;border:1px solid rgba(0,0,0,0.18); }
+    .slot-bg-only .title-layer { position:absolute;left:42px;top:25px;font-family:'FZLanTingHeiS-DB1-GBK','方正兰亭中黑简体','PingFang SC',sans-serif;font-size:33px;font-weight:500;color:var(--slot-title-color,#FFFFFF);letter-spacing:1px;z-index:3;white-space:nowrap; }
+
+    .slot-full { position:relative;width:750px;height:242px; }
+    .slot-full .bg-layer { position:absolute;left:24px;top:0;width:702px;height:242px;border-radius:20px;background:linear-gradient(120deg,var(--slot-tint-from) 0%,var(--slot-tint-to) 100%); }
+    .slot-full .title-layer { position:absolute;left:42px;top:25px;font-family:'FZLanTingHeiS-DB1-GBK','方正兰亭中黑简体','PingFang SC',sans-serif;font-size:33px;font-weight:500;color:var(--slot-title-color,#FFFFFF);letter-spacing:1px;z-index:3;white-space:nowrap; }
+    .slot-full .frame-layer { position:absolute;left:43px;top:76px;width:441px;height:142px;border-radius:20px;background:#FFFFFF;border:1px solid rgba(0,0,0,0.18);z-index:1; }
+    .slot-full .prize-layer { position:absolute;left:43px;top:76px;width:441px;height:142px;display:flex;align-items:center;justify-content:center;gap:8px;padding:0 12px;z-index:2; }
+    .slot-full .prize-layer img { width:124px;height:124px;object-fit:contain; }
+    .slot-full .links-layer { position:absolute;top:24px;right:48px;display:flex;align-items:center;font-family:'PingFang SC',sans-serif;font-size:22px;font-weight:400;color:var(--slot-links-color);white-space:nowrap;z-index:3; }
+    .slot-full .links-sep { margin:0 8px;opacity:0.6; }
+    .slot-full .btn-layer { position:absolute;right:46px;top:106px;z-index:3; }
+    .slot-full .btn-layer .slot-btn-el { width:194px;height:80px;border-radius:40px;display:flex;align-items:center;justify-content:center;font-family:'PingFang SC',sans-serif;font-size:30px;font-weight:400;color:#FFFFFF; }
+    .slot-full .btn-layer .slot-btn-active { background:linear-gradient(90deg,var(--btn-active-from),var(--btn-active-to));box-shadow:0 8px 20px var(--btn-active-shadow); }
+    .slot-full .btn-layer .slot-btn-disabled { background:linear-gradient(90deg,var(--btn-disabled-from),var(--btn-disabled-to)); }
+    .slot-full .remain-layer { position:absolute;right:46px;top:192px;font-size:14px;color:var(--slot-remain-color,#666);text-align:center;width:194px;z-index:3; }
+
+    .slot-empty { width:441px;height:142px;border-radius:12px;background:#FFFFFF;border:1px solid rgba(0,0,0,0.06);display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;position:relative; }
+    .slot-empty .empty-img-wrap { width:230.5px;height:94px;position:relative;overflow:hidden;background:repeating-conic-gradient(#E8E8E8 0% 25%,#F8F8F8 0% 50%) 0 0/8px 8px;flex-shrink:0;cursor:grab; }
+    .slot-empty .empty-img-wrap:active { cursor:grabbing; }
+    .slot-empty .empty-img-wrap img { position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);max-width:none;max-height:none;width:auto;height:auto;display:block;user-select:none;-webkit-user-drag:none; }
+    .slot-empty .empty-text { margin-top:5px;font-family:'PingFang SC','Microsoft YaHei',sans-serif;font-size:13px;color:#999999;text-align:center;white-space:nowrap;flex-shrink:0; }
+
+    .btn-standalone { width:194px;height:80px;border-radius:40px;display:flex;align-items:center;justify-content:center;font-family:'PingFang SC',sans-serif;font-size:30px;font-weight:400;color:#FFFFFF; }
+    .btn-standalone.active { background:linear-gradient(90deg,var(--btn-active-from),var(--btn-active-to));box-shadow:0 8px 20px var(--btn-active-shadow); }
+    .btn-standalone.disabled { background:linear-gradient(90deg,var(--btn-disabled-from),var(--btn-disabled-to)); }
+
+    .upload-btn { display:inline-block;padding:5px 12px;background:#F5F5F5;border:1px solid #E0E0E0;border-radius:6px;font-size:12px;color:#555;cursor:pointer;transition:all 0.15s; }
+    .upload-btn:hover { background:#FFF0F3;border-color:#FF3060;color:#FF3060; }
+
+    .link-tag { display:inline-flex;align-items:center;justify-content:center;font-family:'PingFang SC',sans-serif;font-size:22px;font-weight:400;color:var(--slot-links-color);white-space:nowrap;background:transparent; }
+    .link-tag-light { display:inline-flex;align-items:center;justify-content:center;font-family:'PingFang SC',sans-serif;font-size:22px;font-weight:400;color:rgba(255,255,255,0.9);white-space:nowrap;background:transparent; }
+
+    .prize-img-wrap { width:124px;height:124px;display:flex;align-items:center;justify-content:center; }
+    .prize-img-wrap img { width:124px;height:124px;object-fit:contain; }
+
+    .toast { position:fixed;bottom:32px;left:50%;transform:translateX(-50%) translateY(20px);background:rgba(0,0,0,0.75);color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;opacity:0;transition:all 0.3s;pointer-events:none;z-index:9999;white-space:nowrap; }
+    .toast.show { opacity:1;transform:translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+
+<!-- 顶部导航 -->
+<div class="topbar">
+  <div class="topbar-title">闪购会场组件自助设计工具<span>老虎机板块</span></div>
+  <button class="btn-export-all" id="btn-all" onclick="exportAll()">⬇ 一键全部导出 ZIP</button>
+</div>
+
+<!-- 左侧配色面板 -->
+<div class="sidebar">
+  <h4>🎨 配色切换</h4>
+  <div class="preset-group-label">☀️ 浅色系（浅色背景用）</div>
+  <div class="preset-grid" id="preset-grid-light">
+    <button class="preset-btn active" data-preset="pink" data-tone="light" onclick="applyPreset('pink',this)">🌸 粉红</button>
+    <button class="preset-btn" data-preset="rose" data-tone="light" onclick="applyPreset('rose',this)">🌹 玫红</button>
+    <button class="preset-btn" data-preset="orange" data-tone="light" onclick="applyPreset('orange',this)">🍊 橙色</button>
+    <button class="preset-btn" data-preset="yellow" data-tone="light" onclick="applyPreset('yellow',this)">🌟 黄橙</button>
+    <button class="preset-btn" data-preset="green" data-tone="light" onclick="applyPreset('green',this)">🌿 绿色</button>
+    <button class="preset-btn" data-preset="teal" data-tone="light" onclick="applyPreset('teal',this)">🩵 蓝绿</button>
+    <button class="preset-btn" data-preset="purple" data-tone="light" onclick="applyPreset('purple',this)">💜 蓝紫</button>
+  </div>
+  <div class="preset-group-label" style="margin-top:10px">🌙 深色系（深色背景用）</div>
+  <div class="preset-grid" id="preset-grid-dark">
+    <button class="preset-btn preset-disabled" data-preset="dark-red" data-tone="dark" onclick="applyPreset('dark-red',this)">🔴 深红</button>
+    <button class="preset-btn preset-disabled" data-preset="dark-orange" data-tone="dark" onclick="applyPreset('dark-orange',this)">🟠 深橙</button>
+    <button class="preset-btn preset-disabled" data-preset="dark-green" data-tone="dark" onclick="applyPreset('dark-green',this)">🟢 深绿</button>
+    <button class="preset-btn preset-disabled" data-preset="dark-blue" data-tone="dark" onclick="applyPreset('dark-blue',this)">🔵 深蓝</button>
+    <button class="preset-btn preset-disabled" data-preset="dark-purple" data-tone="dark" onclick="applyPreset('dark-purple',this)">🟣 深紫</button>
+  </div>
+  <hr class="divider">
+  <div class="color-row"><label>主按钮 起始色</label><input type="color" id="c-btn-from" value="#FF3060" oninput="syncCustom()"></div>
+  <div class="color-row"><label>主按钮 结束色</label><input type="color" id="c-btn-to" value="#FF7030" oninput="syncCustom()"></div>
+  <div class="color-row"><label>禁用按钮 起始色</label><input type="color" id="c-dis-from" value="#FFBDD0" oninput="syncCustom()"></div>
+  <div class="color-row"><label>禁用按钮 结束色</label><input type="color" id="c-dis-to" value="#FFD0B0" oninput="syncCustom()"></div>
+  <div class="color-row"><label>背景叠色 起始</label><input type="color" id="c-slot-from" value="#FFE8F5" oninput="syncCustom()"></div>
+  <div class="color-row"><label>背景叠色 结束</label><input type="color" id="c-slot-to" value="#FFB0D8" oninput="syncCustom()"></div>
+  <div class="color-row"><label>链接文字色</label><input type="color" id="c-links-color" value="#8f8f8f" oninput="syncCustom()"></div>
+  <hr class="divider">
+  <div class="color-row"><label>主标题文案</label><input type="text" id="c-title-text" value="天天抽免单" oninput="syncTitleText()"></div>
+  <div class="color-row"><label>主标题文字色</label><input type="color" id="c-title-color" value="#ffffff" oninput="syncCustom()"></div>
+  <hr class="divider">
+  <h4 style="margin-bottom:10px">📭 空态页设置</h4>
+  <div class="color-row"><label>空态文案</label><input type="text" id="c-empty-text" value="活动太火爆，请稍后重试..." oninput="syncEmptyText()" style="flex:1;padding:4px 8px;border:1px solid #ddd;border-radius:4px;font-size:12px"></div>
+  <div style="margin-top:8px">
+    <label style="font-size:12px;color:#555;display:block;margin-bottom:6px">替换空态插图（仅支持 PNG）</label>
+    <label class="upload-btn" for="c-empty-img">📁 选择 PNG 图片</label>
+    <input type="file" id="c-empty-img" accept="image/png" style="display:none" onchange="replaceEmptyImg(this)">
+    <div id="c-empty-img-name" style="font-size:11px;color:#aaa;margin-top:4px">当前：3d3b827429c0856d14213ddf1d44cc12262543.png</div>
+    <div style="font-size:11px;color:#bbb;margin-top:3px">💡 拖动调整位置，滚轮或滑块调整大小</div>
+  </div>
+  <div style="margin-top:10px">
+    <div style="display:flex;align-items:center;gap:8px">
+      <label style="font-size:12px;color:#555;white-space:nowrap">插图大小</label>
+      <input type="range" id="c-empty-scale" min="0" max="200" value="100" step="1" style="flex:1" oninput="syncEmptyScale(this.value)">
+      <span id="c-empty-scale-val" style="font-size:12px;color:#555;min-width:36px;text-align:right">100%</span>
+    </div>
+    <button onclick="resetEmptyTransform()" style="margin-top:6px;font-size:11px;padding:3px 10px;border:1px solid #ddd;border-radius:4px;background:#f5f5f5;cursor:pointer;color:#555">↺ 重置位置与大小</button>
+  </div>
+</div>
+
+<!-- 主内容区 -->
+<div class="main">
+
+  <div class="section-title" id="section-preview">① 老虎机未抽奖状态（含标题 + 奖品图 + 按钮）</div>
+  <div class="export-grid">
+    <div class="preview-card-wrap" id="preview-card-wrap">
+      <div class="preview-badge">👁 实时预览区</div>
+      <div class="export-card">
+        <div class="card-preview">
+          <div class="slot-full" id="asset-slot-ready">
+            <div class="bg-layer"></div>
+            <div class="title-layer" id="slot-title-ready">天天抽免单</div>
+            <div class="frame-layer"></div>
+            <div class="prize-layer" id="preview-prize-layer">
+              <img id="preview-prize-img-1" src="M:/奖品图/124-1.png" alt="啤酒新客券">
+              <img id="preview-prize-img-2" src="M:/奖品图/20.png" alt="零食免单券">
+              <img id="preview-prize-img-3" src="M:/奖品图/20 拷贝.png" alt="零食盲盒券">
+            </div>
+            <div class="empty-overlay" id="preview-empty-overlay" style="display:none;position:absolute;left:19px;top:76px;width:441px;height:142px;border-radius:20px;z-index:2;background:#fff;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;">
+              <div class="empty-img-wrap" style="width:230.5px;height:94px;position:relative;overflow:hidden;background:repeating-conic-gradient(#E8E8E8 0% 25%,#F8F8F8 0% 50%) 0 0/8px 8px;flex-shrink:0;">
+                <img id="preview-empty-img" src="C:/Users/zhuyanlin03/Desktop/3d3b827429c0856d14213ddf1d44cc12262543.png" alt="空态插图" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:auto;height:auto;max-width:none;max-height:none;">
+              </div>
+              <div style="margin-top:5px;font-family:'PingFang SC',sans-serif;font-size:13px;color:#999;white-space:nowrap;" id="preview-empty-text">活动太火爆，请稍后重试...</div>
+            </div>
+            <div class="links-layer">
+              <span id="link-my-prize-ready">我的奖品</span>
+              <span class="links-sep">|</span>
+              <span id="link-rule-ready">抽奖规则</span>
+            </div>
+            <div class="btn-layer"><div class="slot-btn-el slot-btn-active">立即抽奖</div></div>
+            <div class="remain-layer">还剩 999 次抽奖机会</div>
+          </div>
+        </div>
+        <div class="card-footer">
+          <div class="card-info"><div class="card-name">老虎机 — 未抽奖状态</div><div class="card-size">750 × 242 px · PNG</div></div>
+          <button class="btn-preview" onclick="previewToPanel()">👁 预览</button>
+          <button class="btn-export-single" onclick="exportSingle('asset-slot-ready','老虎机_未抽奖状态_750x242')">⬇ 导出</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title">② 老虎机背景（含主标题，不带商品图）</div>
+  <div class="export-grid">
+    <div class="export-card">
+      <div class="card-preview">
+        <div class="slot-bg-only" id="asset-bg-only">
+          <div class="bg-layer"></div>
+          <div class="title-layer" id="slot-title-bg">天天抽免单</div>
+          <div class="frame-layer"></div>
+        </div>
+      </div>
+      <div class="card-footer">
+        <div class="card-info"><div class="card-name">老虎机背景（含主标题）</div><div class="card-size">750 × 242 px · PNG</div></div>
+        <button class="btn-export-single" onclick="exportSingle('asset-bg-only','老虎机背景_含主标题_750x242')">⬇ 导出</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title">③ 老虎机空态页</div>
+  <div class="export-grid">
+    <div class="export-card">
+      <div class="card-preview">
+        <div class="slot-empty" id="asset-slot-empty">
+          <div class="empty-img-wrap" id="empty-img-wrap">
+            <img id="empty-illus" src="C:/Users/zhuyanlin03/Desktop/3d3b827429c0856d14213ddf1d44cc12262543.png" alt="空态插图" draggable="false">
+          </div>
+          <div class="empty-text" id="empty-text-el">活动太火爆，请稍后重试...</div>
+        </div>
+      </div>
+      <div class="card-footer">
+        <div class="card-info"><div class="card-name">老虎机空态页</div><div class="card-size">882 × 284 px @2x · PNG</div></div>
+        <button class="btn-preview" onclick="previewEmpty()">👁 预览</button>
+        <button class="btn-export-single" onclick="exportSingle('asset-slot-empty','老虎机空态页_882x284',2)">⬇ 导出</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title">④ 抽奖按钮（194 × 80 px）</div>
+  <div class="export-grid">
+    <div class="export-card">
+      <div class="card-preview"><div class="btn-standalone active" id="asset-btn-active">立即抽奖</div></div>
+      <div class="card-footer">
+        <div class="card-info"><div class="card-name">按钮 — 立即抽奖</div><div class="card-size">194 × 80 px · PNG</div></div>
+        <button class="btn-preview" onclick="previewBtn('active')">👁 预览</button>
+        <button class="btn-export-single" onclick="exportSingle('asset-btn-active','按钮_立即抽奖_194x80')">⬇ 导出</button>
+      </div>
+    </div>
+    <div class="export-card">
+      <div class="card-preview"><div class="btn-standalone disabled" id="asset-btn-ended">活动已结束</div></div>
+      <div class="card-footer">
+        <div class="card-info"><div class="card-name">按钮 — 活动已结束</div><div class="card-size">194 × 80 px · PNG</div></div>
+        <button class="btn-preview" onclick="previewBtn('disabled')">👁 预览</button>
+        <button class="btn-export-single" onclick="exportSingle('asset-btn-ended','按钮_活动已结束_194x80')">⬇ 导出</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title">⑤ 链接文字（透明背景）</div>
+  <div class="export-grid">
+    <div class="export-card">
+      <div class="card-preview" style="background:#E8E8E8"><div class="link-tag" id="asset-link-prize">我的奖品</div></div>
+      <div class="card-footer">
+        <div class="card-info"><div class="card-name">我的奖品</div><div class="card-size">96 × 34 px · PNG</div></div>
+        <button class="btn-preview" onclick="previewLink('light')">👁 预览</button>
+        <button class="btn-export-single" onclick="exportSingleFixed('asset-link-prize','我的奖品_浅色_96x34',96,34)">⬇ 导出</button>
+      </div>
+    </div>
+    <div class="export-card">
+      <div class="card-preview" style="background:#E8E8E8"><div class="link-tag" id="asset-link-rule"><span style="opacity:0.6;margin-right:8px">|</span>抽奖规则</div></div>
+      <div class="card-footer">
+        <div class="card-info"><div class="card-name">抽奖规则</div><div class="card-size">109 × 34 px · PNG</div></div>
+        <button class="btn-preview" onclick="previewLink('light')">👁 预览</button>
+        <button class="btn-export-single" onclick="exportSingleFixed('asset-link-rule','抽奖规则_浅色_109x34',109,34)">⬇ 导出</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title">⑥ 奖品图（124 × 124 px）</div>
+  <div class="export-grid">
+    <div class="export-card">
+      <div class="card-preview"><div class="prize-img-wrap" id="asset-prize-1"><img src="M:/奖品图/124-1.png" alt="啤酒新客券"></div></div>
+      <div class="card-footer">
+        <div class="card-info"><div class="card-name">啤酒新客券</div><div class="card-size">124 × 124 px · PNG</div></div>
+        <button class="btn-preview" onclick="previewPrize(1)">👁 预览</button>
+        <button class="btn-export-single" onclick="exportSingle('asset-prize-1','奖品图_啤酒新客券_124x124')">⬇ 导出</button>
+      </div>
+    </div>
+    <div class="export-card">
+      <div class="card-preview"><div class="prize-img-wrap" id="asset-prize-2"><img src="M:/奖品图/20.png" alt="零食免单券"></div></div>
+      <div class="card-footer">
+        <div class="card-info"><div class="card-name">零食免单券</div><div class="card-size">124 × 124 px · PNG</div></div>
+        <button class="btn-preview" onclick="previewPrize(2)">👁 预览</button>
+        <button class="btn-export-single" onclick="exportSingle('asset-prize-2','奖品图_零食免单券_124x124')">⬇ 导出</button>
+      </div>
+    </div>
+    <div class="export-card">
+      <div class="card-preview"><div class="prize-img-wrap" id="asset-prize-3"><img src="M:/奖品图/20 拷贝.png" alt="零食盲盒券"></div></div>
+      <div class="card-footer">
+        <div class="card-info"><div class="card-name">零食盲盒券</div><div class="card-size">124 × 124 px · PNG</div></div>
+        <button class="btn-preview" onclick="previewPrize(3)">👁 预览</button>
+        <button class="btn-export-single" onclick="exportSingle('asset-prize-3','奖品图_零食盲盒券_124x124')">⬇ 导出</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<!-- 右侧页面预览窗口 -->
+<div class="preview-panel" id="preview-panel">
+  <div class="preview-panel-header">
+    <h4>📱 页面预览</h4>
+    <div id="panel-color-section">
+      <div style="font-size:11px;color:#555;font-weight:600;margin-bottom:5px">🎨 纯色背景</div>
+      <div style="font-size:10px;color:#bbb;margin-bottom:6px">无背景图时使用，同时推荐组件配色</div>
+      <div style="font-size:10px;color:#aaa;margin-bottom:4px">☀️ 浅色系（低饱和）</div>
+      <div class="bg-swatches">
+        <div class="bg-swatch" style="background:#ffdceb" title="粉" onclick="applyBgTheme('#ffdceb',this,'light')"></div>
+        <div class="bg-swatch" style="background:#ffdcdc" title="红" onclick="applyBgTheme('#ffdcdc',this,'light')"></div>
+        <div class="bg-swatch" style="background:#d9f8ff" title="青蓝" onclick="applyBgTheme('#d9f8ff',this,'light')"></div>
+        <div class="bg-swatch" style="background:#efe9ff" title="蓝紫" onclick="applyBgTheme('#efe9ff',this,'light')"></div>
+        <div class="bg-swatch" style="background:#f9fed2" title="绿" onclick="applyBgTheme('#f9fed2',this,'light')"></div>
+        <div class="bg-swatch" style="background:#fff6a8" title="黄" onclick="applyBgTheme('#fff6a8',this,'light')"></div>
+        <div class="bg-swatch" style="background:#ffe3c7" title="橙" onclick="applyBgTheme('#ffe3c7',this,'light')"></div>
+      </div>
+      <div style="font-size:10px;color:#aaa;margin:6px 0 4px">🎉 大促色（高饱和）</div>
+      <div class="bg-swatches">
+        <div class="bg-swatch" style="background:#ff1d5e" title="玫红" onclick="applyBgTheme('#ff1d5e',this,'light')"></div>
+        <div class="bg-swatch" style="background:#ff0000" title="深红" onclick="applyBgTheme('#ff0000',this,'light')"></div>
+        <div class="bg-swatch" style="background:#ffdf04" title="闪购黄" onclick="applyBgTheme('#ffdf04',this,'light')"></div>
+      </div>
+      <div style="font-size:10px;color:#aaa;margin:6px 0 4px">🌙 深色系</div>
+      <div class="bg-swatches">
+        <div class="bg-swatch" style="background:#01732b" title="墨绿" onclick="applyBgTheme('#01732b',this,'dark')"></div>
+        <div class="bg-swatch" style="background:#331200" title="深棕" onclick="applyBgTheme('#331200',this,'dark')"></div>
+        <div class="bg-swatch" style="background:#000679" title="深蓝" onclick="applyBgTheme('#000679',this,'dark')"></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;margin-top:8px">
+        <span style="font-size:10px;color:#aaa">自定义</span>
+        <input type="color" id="panel-bg-custom" value="#ffdcdc" style="width:28px;height:22px;border:1px solid #ddd;border-radius:4px;padding:1px;cursor:pointer" oninput="applyBgTheme(this.value,null)">
+        <span style="font-size:10px;color:#bbb" id="panel-bg-hex">#ffdcdc</span>
+      </div>
+    </div>
+    <div style="font-size:11px;color:#555;font-weight:600;margin:10px 0 6px">🖼 会场背景图</div>
+    <label id="panel-bg-upload-label" for="panel-bg-upload"
+      style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;width:100%;height:56px;border:1.5px dashed #ddd;border-radius:10px;cursor:pointer;background:#fafafa;transition:border-color 0.15s;font-size:11px;color:#aaa"
+      onmouseover="this.style.borderColor='#FF3060';this.style.color='#FF3060'"
+      onmouseout="this.style.borderColor='#ddd';this.style.color='#aaa'">
+      <span style="font-size:18px">📁</span>
+      <span>上传 JPG / PNG（750px 或 1500px 宽）</span>
+    </label>
+    <input type="file" id="panel-bg-upload" accept="image/jpeg,image/png" style="display:none" onchange="loadPanelBgImage(this)">
+    <div id="panel-bg-img-name" style="font-size:10px;color:#bbb;margin-top:3px;text-align:center">未上传</div>
+    <button id="panel-bg-clear" onclick="clearPanelBgImage()" style="display:none;margin-top:4px;width:100%;padding:3px 0;font-size:11px;color:#999;background:#f5f5f5;border:1px solid #e0e0e0;border-radius:6px;cursor:pointer">✕ 移除背景图，改用纯色</button>
+  </div>
+  <div class="preview-panel-body">
+    <div class="page-mock" id="page-mock">
+      <div class="page-mock-nav" id="page-mock-nav">
+        <div class="page-mock-nav-dot"></div>
+        <div class="page-mock-nav-dot"></div>
+        <div class="page-mock-nav-title">闪购会场</div>
+      </div>
+      <div class="page-mock-bg" id="page-mock-bg" style="background:#ffdcdc;min-height:693px;">
+        <img id="panel-bg-img-el" src="" alt="" style="display:none;width:calc(100% + 24px);height:auto;pointer-events:none;margin:-12px -12px 0;">
+      </div>
+      <div id="panel-slot-inner-wrap">
+        <div id="panel-slot-inner" style="width:750px;transform:scale(0.3947);transform-origin:top left;pointer-events:none;"></div>
+      </div>
+    </div>
+    <div class="preview-panel-tip">点击①卡片「👁 预览」将老虎机同步到此窗口</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<div id="offscreen" style="position:fixed;left:-9999px;top:-9999px;pointer-events:none;"></div>
+
+<script>
+  /* ===== 颜色工具函数 ===== */
+  function hexToRgb(hex){hex=hex.replace('#','');if(hex.length===3)hex=hex.split('').map(c=>c+c).join('');return[parseInt(hex.slice(0,2),16),parseInt(hex.slice(2,4),16),parseInt(hex.slice(4,6),16)];}
+  function rgbToHex(r,g,b){return'#'+[r,g,b].map(v=>Math.round(Math.max(0,Math.min(255,v))).toString(16).padStart(2,'0')).join('');}
+  function rgbToHsl(r,g,b){r/=255;g/=255;b/=255;const max=Math.max(r,g,b),min=Math.min(r,g,b);let h,s,l=(max+min)/2;if(max===min){h=s=0;}else{const d=max-min;s=l>0.5?d/(2-max-min):d/(max+min);switch(max){case r:h=((g-b)/d+(g<b?6:0))/6;break;case g:h=((b-r)/d+2)/6;break;default:h=((r-g)/d+4)/6;}}return[h*360,s,l];}
+  function hslToRgb(h,s,l){h/=360;const hue2rgb=(p,q,t)=>{if(t<0)t+=1;if(t>1)t-=1;if(t<1/6)return p+(q-p)*6*t;if(t<1/2)return q;if(t<2/3)return p+(q-p)*(2/3-t)*6;return p;};if(s===0){const v=Math.round(l*255);return[v,v,v];}const q=l<0.5?l*(1+s):l+s-l*s,p=2*l-q;return[hue2rgb(p,q,h+1/3),hue2rgb(p,q,h),hue2rgb(p,q,h-1/3)].map(v=>Math.round(v*255));}
+  function adjustL(hex,dL){const[r,g,b]=hexToRgb(hex);let[h,s,l]=rgbToHsl(r,g,b);l=Math.max(0,Math.min(1,l+dL));return rgbToHex(...hslToRgb(h,s,l));}
+  function adjustS(hex,dS){const[r,g,b]=hexToRgb(hex);let[h,s,l]=rgbToHsl(r,g,b);s=Math.max(0,Math.min(1,s+dS));return rgbToHex(...hslToRgb(h,s,l));}
+
+  /* ===== 配色预设 ===== */
+  const PRESETS = {
+    pink:   {from:'#FF5518',to:'#FE10A8',disFrom:'#FFBDD0',disTo:'#FFD0B0',slotFrom:'#FFE1FA',slotTo:'#FFC9F3',linksColor:'#8f8f8f',titleColor:'#FF5518',isDark:false},
+    rose:   {from:'#FF1C18',to:'#FE106F',disFrom:'#FFB3CE',disTo:'#FFC8D8',slotFrom:'#FFE1E6',slotTo:'#FFC9D6',linksColor:'#8f8f8f',titleColor:'#FF1C18',isDark:false},
+    teal:   {from:'#06B1FF',to:'#0596FD',disFrom:'#A8E6F0',disTo:'#C0F0F8',slotFrom:'#C8F9FF',slotTo:'#81F3FE',linksColor:'#8f8f8f',titleColor:'#06B1FF',isDark:false},
+    purple: {from:'#9771FF',to:'#2D30FF',disFrom:'#DDD6FE',disTo:'#EDE9FE',slotFrom:'#E8E6FF',slotTo:'#D4D0FF',linksColor:'#8f8f8f',titleColor:'#9771FF',isDark:false},
+    green:  {from:'#27D365',to:'#00C24C',disFrom:'#A8E6C4',disTo:'#C8F5D8',slotFrom:'#E8FED4',slotTo:'#D3FFB2',linksColor:'#8f8f8f',titleColor:'#27D365',isDark:false},
+    yellow: {from:'#FF4560',to:'#FF0036',disFrom:'#FFE8A0',disTo:'#FFF3C0',slotFrom:'#FFF7D3',slotTo:'#FFE9A5',linksColor:'#8f8f8f',titleColor:'#FF4560',isDark:false},
+    orange: {from:'#FF5E00',to:'#FF2500',disFrom:'#FFD8A8',disTo:'#FFE8A8',slotFrom:'#FFE8D8',slotTo:'#FFD3B4',linksColor:'#8f8f8f',titleColor:'#FF5E00',isDark:false},
+  };
+  const PRESETS_DARK = {
+    'dark-red':    {from:'#FF6B8A',to:'#FF9060',disFrom:'#C0392B',disTo:'#A93226',slotFrom:'#8B1A2A',slotTo:'#C0392B',linksColor:'rgba(255,255,255,0.85)',titleColor:'#FFFFFF',isDark:true},
+    'dark-orange': {from:'#FFB347',to:'#FFD700',disFrom:'#B8620A',disTo:'#9A5200',slotFrom:'#7A4500',slotTo:'#B8620A',linksColor:'rgba(255,255,255,0.85)',titleColor:'#FFFFFF',isDark:true},
+    'dark-green':  {from:'#4ADE80',to:'#86EFAC',disFrom:'#166534',disTo:'#14532D',slotFrom:'#052E16',slotTo:'#166534',linksColor:'rgba(255,255,255,0.85)',titleColor:'#FFFFFF',isDark:true},
+    'dark-blue':   {from:'#60A5FA',to:'#93C5FD',disFrom:'#1E40AF',disTo:'#1E3A8A',slotFrom:'#0A1628',slotTo:'#1A3A6B',linksColor:'rgba(255,255,255,0.85)',titleColor:'#FFFFFF',isDark:true},
+    'dark-purple': {from:'#C084FC',to:'#E879F9',disFrom:'#6D28D9',disTo:'#5B21B6',slotFrom:'#1E0A3C',slotTo:'#5B2D8E',linksColor:'rgba(255,255,255,0.85)',titleColor:'#FFFFFF',isDark:true},
+  };
+  let currentTone = 'light';
+
+  function updatePresetToneState(tone) {
+    document.querySelectorAll('.preset-btn').forEach(btn => {
+      const btnTone = btn.dataset.tone;
+      if (btnTone && btnTone !== tone) {
+        btn.classList.add('preset-disabled');
+        btn.classList.remove('active','recommended');
+      } else if (btnTone === tone) {
+        btn.classList.remove('preset-disabled');
+      }
+    });
+  }
+
+  function applyPreset(key, btn) {
+    const p = PRESETS[key] || PRESETS_DARK[key];
+    if (!p) return;
+    const r = document.documentElement.style;
+    r.setProperty('--btn-active-from',   p.from);
+    r.setProperty('--btn-active-to',     p.to);
+    r.setProperty('--btn-active-shadow', 'rgba(0,0,0,0.25)');
+    r.setProperty('--btn-disabled-from', p.disFrom);
+    r.setProperty('--btn-disabled-to',   p.disTo);
+    r.setProperty('--slot-tint-from',    p.slotFrom);
+    r.setProperty('--slot-tint-to',      p.slotTo);
+    r.setProperty('--slot-links-color',  p.linksColor);
+    r.setProperty('--slot-title-color',  p.titleColor);
+    document.getElementById('c-btn-from').value    = p.from;
+    document.getElementById('c-btn-to').value      = p.to;
+    document.getElementById('c-dis-from').value    = p.disFrom;
+    document.getElementById('c-dis-to').value      = p.disTo;
+    document.getElementById('c-slot-from').value   = p.slotFrom;
+    document.getElementById('c-slot-to').value     = p.slotTo;
+    document.getElementById('c-links-color').value = p.isDark ? '#ffffff' : '#8f8f8f';
+    document.getElementById('c-title-color').value = p.titleColor;
+    const linksLayer = document.querySelector('#asset-slot-ready .links-layer');
+    if (linksLayer) linksLayer.style.color = p.isDark ? 'rgba(255,255,255,0.9)' : '';
+    document.documentElement.style.setProperty('--slot-remain-color', p.isDark ? 'rgba(255,255,255,0.85)' : '#666');
+    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active','recommended'));
+    if (btn) btn.classList.add('active');
+    document.querySelectorAll('.bg-swatch').forEach(s => s.classList.remove('active'));
+    syncPreviewPanel();
+  }
+
+  function syncCustom() {
+    const r = document.documentElement.style;
+    r.setProperty('--btn-active-from',   document.getElementById('c-btn-from').value);
+    r.setProperty('--btn-active-to',     document.getElementById('c-btn-to').value);
+    r.setProperty('--btn-disabled-from', document.getElementById('c-dis-from').value);
+    r.setProperty('--btn-disabled-to',   document.getElementById('c-dis-to').value);
+    r.setProperty('--slot-tint-from',    document.getElementById('c-slot-from').value);
+    r.setProperty('--slot-tint-to',      document.getElementById('c-slot-to').value);
+    r.setProperty('--slot-links-color',  document.getElementById('c-links-color').value);
+    r.setProperty('--slot-title-color',  document.getElementById('c-title-color').value);
+    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+    syncPreviewPanel();
+  }
+
+  function syncTitleText() {
+    const text = document.getElementById('c-title-text').value;
+    document.querySelectorAll('.title-layer').forEach(el => el.textContent = text);
+    syncPreviewPanel();
+  }
+
+  function syncEmptyText() {
+    document.getElementById('empty-text-el').textContent = document.getElementById('c-empty-text').value;
+  }
+
+  function calcBgTheme(bgHex) {
+    const [r,g,b] = hexToRgb(bgHex);
+    const [h, s, L] = rgbToHsl(r, g, b);
+    const isLight = L > 0.55;
+    let recommendedPreset = 'pink', recommendedLabel = '\uD83C\uDF38 \u7C89\u7EA2';
+    if (isLight) {
+      if(h>=330||h<20)      {recommendedPreset='rose';        recommendedLabel='\uD83C\uDF39 \u73AB\u7EA2';}
+      else if(h>=20&&h<55)  {recommendedPreset='orange';      recommendedLabel='\uD83C\uDF4A \u6A59\u8272';}
+      else if(h>=55&&h<90)  {recommendedPreset='yellow';      recommendedLabel='\uD83C\uDF1F \u9EC4\u6A59';}
+      else if(h>=90&&h<180) {recommendedPreset='green';       recommendedLabel='\uD83C\uDF3F \u7EFF\u8272';}
+      else if(h>=180&&h<240){recommendedPreset='teal';        recommendedLabel='\uD83E\uDE75 \u84DD\u7EFF';}
+      else if(h>=240&&h<330){recommendedPreset='purple';      recommendedLabel='\uD83D\uDC9C \u84DD\u7D2B';}
+    } else {
+      if(h>=330||h<20)      {recommendedPreset='dark-red';    recommendedLabel='\uD83D\uDD34 \u6DF1\u7EA2';}
+      else if(h>=20&&h<55)  {recommendedPreset='dark-orange'; recommendedLabel='\uD83D\uDFE0 \u6DF1\u6A59';}
+      else if(h>=55&&h<150) {recommendedPreset='dark-green';  recommendedLabel='\uD83D\uDFE2 \u6DF1\u7EFF';}
+      else if(h>=150&&h<270){recommendedPreset='dark-blue';   recommendedLabel='\uD83D\uDD35 \u6DF1\u84DD';}
+      else                  {recommendedPreset='dark-purple'; recommendedLabel='\uD83D\uDFE3 \u6DF1\u7D2B';}
+    }
+    return { isLight, recommendedPreset, recommendedLabel };
+  }
+
+  function applyBgTheme(bgHex, swatchEl, forceTone) {
+    const mockBg = document.getElementById('page-mock-bg');
+    const bgImgEl = document.getElementById('panel-bg-img-el');
+    if (mockBg) { mockBg.style.backgroundColor = bgHex; mockBg.style.minHeight = Math.round(1624*320/750)+'px'; }
+    if (bgImgEl) { bgImgEl.src=''; bgImgEl.style.display='none'; }
+    document.getElementById('panel-bg-clear').style.display = 'none';
+    document.getElementById('panel-bg-img-name').textContent = '\u672A\u4E0A\u4F20';
+    document.getElementById('panel-color-section').style.display = 'block';
+    document.querySelectorAll('.bg-swatch').forEach(s => s.classList.remove('active'));
+    if (swatchEl) swatchEl.classList.add('active');
+    if (forceTone !== 'light' && forceTone !== 'dark') document.getElementById('panel-bg-custom').value = bgHex;
+    document.getElementById('panel-bg-hex').textContent = bgHex;
+    const { isLight: autoLight, recommendedPreset, recommendedLabel } = calcBgTheme(bgHex);
+    const isLight = forceTone === 'light' ? true : forceTone === 'dark' ? false : autoLight;
+    currentTone = isLight ? 'light' : 'dark';
+    updatePresetToneState(currentTone);
+    const linksLayer = document.querySelector('#asset-slot-ready .links-layer');
+    if (linksLayer) linksLayer.style.color = isLight ? '' : 'rgba(255,255,255,0.9)';
+    document.documentElement.style.setProperty('--slot-links-color', isLight ? '#8f8f8f' : 'rgba(255,255,255,0.85)');
+    document.documentElement.style.setProperty('--slot-remain-color', isLight ? '#666' : 'rgba(255,255,255,0.85)');
+    document.getElementById('c-links-color').value = isLight ? '#8f8f8f' : '#ffffff';
+    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('recommended'));
+    document.querySelectorAll('.preset-btn').forEach(b => { if(b.dataset.preset===recommendedPreset) b.classList.add('recommended'); });
+    showToast('\u80CC\u666F\u8272\u5DF2\u66F4\u65B0 \u00B7 '+(isLight?'\u6D45\u8272\u7CFB':'\u6DF1\u8272\u7CFB')+'\u5DF2\u542F\u7528 \u00B7 \u300C'+recommendedLabel+'\u300D\u5DF2\u6807\u8BB0\u4E3A\u63A8\u8350');
+  }
+
+  function syncPreviewPanel() {
+    const src=document.getElementById('asset-slot-ready');
+    const dst=document.getElementById('panel-slot-inner');
+    if(!src||!dst)return;
+    const clone=src.cloneNode(true); clone.id=''; clone.style.cssText='';
+    dst.innerHTML=''; dst.appendChild(clone);
+  }
+
+  function previewToPanel() {
+    const src=document.getElementById('asset-slot-ready');
+    const dst=document.getElementById('panel-slot-inner');
+    const wrap=document.getElementById('panel-slot-inner-wrap');
+    if(!src||!dst||!wrap)return;
+    const clone=src.cloneNode(true); clone.id=''; clone.style.cssText='';
+    dst.innerHTML=''; dst.appendChild(clone);
+    const scaledH=Math.round(src.offsetHeight*0.3947);
+    wrap.style.height=scaledH+'px'; wrap.style.display='block';
+    wrap._topPx=56; wrap.style.top='56px'; wrap.style.transform='translateX(-50%)';
+    showToast('\u5DF2\u9884\u89C8\u8001\u864E\u673A \u00B7 \u53EF\u5728\u53F3\u4FA7\u4E0A\u4E0B\u62D6\u62FD\u8C03\u6574\u4F4D\u7F6E');
+  }
+
+  (function initPanelSlotDrag(){
+    let dragging=false,startY=0,startTop=0;
+    function getWrap(){return document.getElementById('panel-slot-inner-wrap');}
+    document.addEventListener('mousedown',function(e){
+      const wrap=getWrap();if(!wrap||wrap.style.display==='none')return;
+      const rect=wrap.getBoundingClientRect();
+      if(e.clientX<rect.left||e.clientX>rect.right||e.clientY<rect.top||e.clientY>rect.bottom)return;
+      dragging=true;startY=e.clientY;startTop=wrap._topPx!==undefined?wrap._topPx:56;e.preventDefault();
+    });
+    document.addEventListener('mousemove',function(e){
+      if(!dragging)return;const wrap=getWrap();
+      const newTop=startTop+(e.clientY-startY);wrap._topPx=newTop;wrap.style.top=newTop+'px';
+    });
+    document.addEventListener('mouseup',function(){dragging=false;});
+  })();
+
+  function loadPanelBgImage(input) {
+    const file=input.files[0];if(!file)return;
+    const reader=new FileReader();
+    reader.onload=function(e){
+      const tmpImg=new Image();
+      tmpImg.onload=function(){
+        const mockBg=document.getElementById('page-mock-bg');
+        const bgImgEl=document.getElementById('panel-bg-img-el');
+        if(!mockBg||!bgImgEl)return;
+        bgImgEl.src=e.target.result;
+        bgImgEl.style.width='calc(100% + 24px)';
+        bgImgEl.style.display='block';
+        mockBg.style.backgroundColor='transparent';
+        mockBg.style.minHeight='60px';
+        document.getElementById('panel-color-section').style.display='none';
+        document.getElementById('panel-bg-clear').style.display='block';
+        document.getElementById('panel-bg-img-name').textContent=file.name+'\uFF08'+tmpImg.naturalWidth+'x'+tmpImg.naturalHeight+'\uFF09';
+        document.querySelectorAll('.bg-swatch').forEach(s=>s.classList.remove('active'));
+        document.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('recommended'));
+        showToast('\u80CC\u666F\u56FE\u5DF2\u52A0\u8F7D');
+      };
+      tmpImg.src=e.target.result;
+    };
+    reader.readAsDataURL(file);
+    input.value='';
+  }
+
+  function clearPanelBgImage() {
+    const mockBg=document.getElementById('page-mock-bg');
+    const bgImgEl=document.getElementById('panel-bg-img-el');
+    if(mockBg){mockBg.style.backgroundColor='#ffdcdc';mockBg.style.minHeight=Math.round(1624*320/750)+'px';}
+    if(bgImgEl){bgImgEl.src='';bgImgEl.style.display='none';}
+    document.getElementById('panel-color-section').style.display='block';
+    document.getElementById('panel-bg-clear').style.display='none';
+    document.getElementById('panel-bg-img-name').textContent='\u672A\u4E0A\u4F20';
+    showToast('\u80CC\u666F\u56FE\u5DF2\u79FB\u9664');
+  }
+
+  function replaceEmptyImg(input) {
+    if(!input.files||!input.files[0])return;
+    const file=input.files[0];
+    if(file.type!=='image/png'){showToast('\u274C \u8BF7\u4E0A\u4F20 PNG \u683C\u5F0F\u7684\u56FE\u7247');input.value='';return;}
+    const url=URL.createObjectURL(file);
+    const img=document.getElementById('empty-illus');
+    img.onload=function(){img._offsetX=0;img._offsetY=0;img._scale=1;img.style.transform='translate(-50%,-50%) scale(1)';const slider=document.getElementById('c-empty-scale');if(slider){slider.value=100;document.getElementById('c-empty-scale-val').textContent='100%';}};
+    img.src=url;
+    document.getElementById('c-empty-img-name').textContent='\u5F53\u524D\uFF1A'+file.name;
+  }
+
+  (function initDragAndScale(){
+    const wrap=document.getElementById('empty-img-wrap');
+    let dragging=false,startX,startY,ox=0,oy=0;
+    function getImg(){return document.getElementById('empty-illus');}
+    function applyTransform(img){const s=img._scale||1;img.style.transform=`translate(calc(-50% + ${img._offsetX||0}px),calc(-50% + ${img._offsetY||0}px)) scale(${s})`;}
+    function updateSlider(s){const pct=Math.round(s*100);const slider=document.getElementById('c-empty-scale');if(slider){slider.value=Math.min(200,Math.max(0,pct));document.getElementById('c-empty-scale-val').textContent=pct+'%';}}
+    wrap.addEventListener('mousedown',e=>{const img=getImg();dragging=true;startX=e.clientX;startY=e.clientY;ox=img._offsetX||0;oy=img._offsetY||0;e.preventDefault();});
+    document.addEventListener('mousemove',e=>{if(!dragging)return;const img=getImg();img._offsetX=ox+(e.clientX-startX);img._offsetY=oy+(e.clientY-startY);applyTransform(img);});
+    document.addEventListener('mouseup',()=>{dragging=false;});
+    wrap.addEventListener('wheel',e=>{e.preventDefault();const img=getImg();const delta=e.deltaY>0?-0.05:0.05;img._scale=Math.min(2,Math.max(0,(img._scale||1)+delta));applyTransform(img);updateSlider(img._scale);},{passive:false});
+  })();
+
+  function syncEmptyScale(val){const img=document.getElementById('empty-illus');img._scale=val/100;img.style.transform=`translate(calc(-50% + ${img._offsetX||0}px),calc(-50% + ${img._offsetY||0}px)) scale(${img._scale})`;document.getElementById('c-empty-scale-val').textContent=val+'%';}
+  function resetEmptyTransform(){const img=document.getElementById('empty-illus');img._offsetX=0;img._offsetY=0;img._scale=1;img.style.transform='translate(-50%,-50%) scale(1)';const slider=document.getElementById('c-empty-scale');if(slider){slider.value=100;document.getElementById('c-empty-scale-val').textContent='100%';}}
+
+  function scrollToPreview(){
+    const wrap=document.getElementById('preview-card-wrap');
+    wrap.scrollIntoView({behavior:'smooth',block:'center'});
+    wrap.classList.remove('flash');void wrap.offsetWidth;wrap.classList.add('flash');
+    setTimeout(()=>wrap.classList.remove('flash'),600);
+    syncPreviewPanel();
+  }
+
+  function previewEmpty(){
+    const overlay=document.getElementById('preview-empty-overlay');
+    const prizeLayer=document.getElementById('preview-prize-layer');
+    const srcImg=document.getElementById('empty-illus');
+    const srcText=document.getElementById('empty-text-el');
+    const previewImg=document.getElementById('preview-empty-img');
+    if(srcImg){previewImg.src=srcImg.src;previewImg.style.transform=srcImg.style.transform||'translate(-50%,-50%)';}
+    if(srcText)document.getElementById('preview-empty-text').textContent=srcText.textContent;
+    prizeLayer.style.display='none';overlay.style.display='flex';
+    scrollToPreview();showToast('\u5DF2\u9884\u89C8\uFF1A\u8001\u864E\u673A\u7A7A\u6001\u9875');
+  }
+
+  let _prizeQueue=[];
+  function previewPrize(idx){
+    const overlay=document.getElementById('preview-empty-overlay');
+    const prizeLayer=document.getElementById('preview-prize-layer');
+    if(overlay.style.display!=='none'){_prizeQueue=[];}
+    overlay.style.display='none';prizeLayer.style.display='';
+    const srcEl=document.querySelector('#asset-prize-'+idx+' img');if(!srcEl)return;
+    const imgs=[document.getElementById('preview-prize-img-1'),document.getElementById('preview-prize-img-2'),document.getElementById('preview-prize-img-3')];
+    if(_prizeQueue.length<3){_prizeQueue.push(idx);}else{_prizeQueue.shift();_prizeQueue.push(idx);}
+    _prizeQueue.forEach((qIdx,i)=>{const qSrc=document.querySelector('#asset-prize-'+qIdx+' img');if(qSrc&&imgs[i])imgs[i].src=qSrc.src;});
+    scrollToPreview();
+    const names=['','\u554A\u9152\u65B0\u5BA2\u5238','\u96F6\u98DF\u514D\u5355\u5238','\u96F6\u98DF\u76F2\u76D2\u5238'];
+    showToast('\u5DF2\u9884\u89C8\uFF1A\u5956\u54C1\u56FE '+(names[idx]||idx)+'\uFF08\u7B2C'+_prizeQueue.length+'\u4F4D\uFF09');
+  }
+
+  function previewBtn(state){
+    const btnEl=document.querySelector('#asset-slot-ready .slot-btn-el');if(!btnEl)return;
+    if(state==='active'){btnEl.classList.remove('slot-btn-disabled');btnEl.classList.add('slot-btn-active');btnEl.textContent='\u7ACB\u5373\u62BD\u5956';}
+    else{btnEl.classList.remove('slot-btn-active');btnEl.classList.add('slot-btn-disabled');btnEl.textContent='\u6D3B\u52A8\u5DF2\u7ED3\u675F';}
+    scrollToPreview();showToast('\u5DF2\u9884\u89C8\uFF1A\u6309\u9215 \u2014 '+(state==='active'?'\u7ACB\u5373\u62BD\u5956':'\u6D3B\u52A8\u5DF2\u7ED3\u675F'));
+  }
+
+  function previewLink(mode){
+    const linksLayer=document.querySelector('#asset-slot-ready .links-layer');if(!linksLayer)return;
+    linksLayer.style.color=mode==='dark'?'rgba(255,255,255,0.9)':'';
+    scrollToPreview();showToast('\u5DF2\u9884\u89C8\uFF1A\u94FE\u63A5\u6587\u5B57 \u2014 '+(mode==='dark'?'\u6DF1\u8272\u80CC\u666F\u7248\uFF08\u6D45\u8272\u5B57\uFF09':'\u6D45\u8272\u80CC\u666F\u7248\uFF08\u6DF1\u8272\u5B57\uFF09'));
+  }
+
+  let toastTimer=null;
+  function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2500);}
+
+  async function exportSingle(id,filename,scale){
+    const el=document.getElementById(id);
+    const btn=el.closest('.export-card').querySelector('.btn-export-single');
+    btn.classList.add('loading');btn.textContent='\u5BFC\u51FA\u4E2D\u2026';showToast('\u6B63\u5728\u6E32\u67D3 '+filename+'\u2026');
+    try{
+      const canvas=await html2canvas(el,{scale:scale||1,useCORS:true,allowTaint:true,backgroundColor:null,logging:false});
+      downloadCanvas(canvas,filename+'.png');showToast('\u2705 \u5DF2\u5BFC\u51FA\uFF1A'+filename+'.png');
+    }catch(e){showToast('\u274C \u5BFC\u51FA\u5931\u8D25\uFF1A'+e.message);}
+    btn.classList.remove('loading');btn.textContent='\u2B07 \u5BFC\u51FA';
+  }
+
+  async function exportSingleFixed(id,filename,w,h){
+    const el=document.getElementById(id);
+    const btn=el.closest('.export-card').querySelector('.btn-export-single');
+    btn.classList.add('loading');btn.textContent='\u5BFC\u51FA\u4E2D\u2026';showToast('\u6B63\u5728\u6E32\u67D3 '+filename+'\u2026');
+    try{
+      const offscreen=document.getElementById('offscreen');
+      const clone=el.cloneNode(true);
+      clone.style.width=w+'px';clone.style.height=h+'px';
+      clone.style.display='inline-flex';clone.style.alignItems='center';clone.style.justifyContent='center';
+      offscreen.appendChild(clone);
+      const canvas=await html2canvas(clone,{scale:1,width:w,height:h,useCORS:true,allowTaint:true,backgroundColor:null,logging:false});
+      offscreen.removeChild(clone);
+      downloadCanvas(canvas,filename+'.png');showToast('\u2705 \u5DF2\u5BFC\u51FA\uFF1A'+filename+'.png');
+    }catch(e){showToast('\u274C \u5BFC\u51FA\u5931\u8D25\uFF1A'+e.message);}
+    btn.classList.remove('loading');btn.textContent='\u2B07 \u5BFC\u51FA';
+  }
+
+  async function exportAll(){
+    const allBtn=document.getElementById('btn-all');
+    allBtn.classList.add('loading');allBtn.textContent='\u23F3 \u6253\u5305\u4E2D\u2026';
+    const isLight=currentTone==='light';
+    const linkTasks=isLight?[
+      {id:'asset-link-prize', name:'\u94FE\u63A5_\u6211\u7684\u5956\u54C1_\u6D45\u8272_96x34',  fixedW:96,  fixedH:34},
+      {id:'asset-link-rule',  name:'\u94FE\u63A5_\u62BD\u5956\u89C4\u5219_\u6D45\u8272_109x34', fixedW:109, fixedH:34},
+    ]:[
+      {id:'asset-link-prize-dark', name:'\u94FE\u63A5_\u6211\u7684\u5956\u54C1_\u6DF1\u8272_96x34',  fixedW:96,  fixedH:34},
+      {id:'asset-link-rule-dark',  name:'\u94FE\u63A5_\u62BD\u5956\u89C4\u5219_\u6DF1\u8272_109x34', fixedW:109, fixedH:34},
+    ];
+    const tasks=[
+      {id:'asset-slot-ready',name:'\u8001\u864E\u673A_\u672A\u62BD\u5956\u72B6\u6001_750x242'},
+      {id:'asset-bg-only',   name:'\u8001\u864E\u673A\u80CC\u666F_\u542B\u4E3B\u6807\u9898_750x242'},
+      {id:'asset-slot-empty',name:'\u8001\u864E\u673A\u7A7A\u6001\u9875_882x284',scale:2},
+      {id:'asset-btn-active',name:'\u6309\u9215_\u7ACB\u5373\u62BD\u5956_194x80'},
+      {id:'asset-btn-ended', name:'\u6309\u9215_\u6D3B\u52A8\u5DF2\u7ED3\u675F_194x80'},
+      ...linkTasks,
+      {id:'asset-prize-1',name:'\u5956\u54C1\u56FE_\u554A\u9152\u65B0\u5BA2\u5238_124x124'},
+      {id:'asset-prize-2',name:'\u5956\u54C1\u56FE_\u96F6\u98DF\u514D\u5355\u5238_124x124'},
+      {id:'asset-prize-3',name:'\u5956\u54C1\u56FE_\u96F6\u98DF\u76F2\u76D2\u5238_124x124'},
+    ];
+    const zip=new JSZip();
+    const folder=zip.folder('\u5929\u5929\u62BD\u514D\u5355_\u7D20\u6750\u5BFC\u51FA');
+    const offscreen=document.getElementById('offscreen');
+    let done=0;
+    for(const task of tasks){
+      showToast('\u6B63\u5728\u6E32\u67D3 ('+(++done)+'/'+tasks.length+') '+task.name+'\u2026');
+      try{
+        let canvas;
+        if(task.fixedW){
+          const el=document.getElementById(task.id);
+          const clone=el.cloneNode(true);
+          clone.style.width=task.fixedW+'px';clone.style.height=task.fixedH+'px';
+          clone.style.display='inline-flex';clone.style.alignItems='center';clone.style.justifyContent='center';
+          offscreen.appendChild(clone);
+          canvas=await html2canvas(clone,{scale:1,width:task.fixedW,height:task.fixedH,useCORS:true,allowTaint:true,backgroundColor:null,logging:false});
+          offscreen.removeChild(clone);
+        }else{
+          canvas=await html2canvas(document.getElementById(task.id),{scale:task.scale||1,useCORS:true,allowTaint:true,backgroundColor:null,logging:false});
+        }
+        const blob=await canvasToBlob(canvas);
+        folder.file(task.name+'.png',blob);
+      }catch(e){console.warn('\u8DF3\u8FC7',task.name,e);}
+    }
+    showToast('\uD83D\uDCE6 \u6B63\u5728\u751F\u6210 ZIP\u2026');
+    const zipBlob=await zip.generateAsync({type:'blob'});
+    const url=URL.createObjectURL(zipBlob);
+    const a=document.createElement('a');a.href=url;a.download='\u5929\u5929\u62BD\u514D\u5355_\u7D20\u6750\u5BFC\u51FA.zip';a.click();
+    URL.revokeObjectURL(url);
+    showToast('\u2705 ZIP \u5DF2\u4E0B\u8F7D\uFF01\u5171 '+tasks.length+' \u4E2A\u6587\u4EF6\uFF08'+(isLight?'\u6D45\u8272':'\u6DF1\u8272')+'\u94FE\u63A5\u6587\u5B57\uFF09');
+    allBtn.classList.remove('loading');allBtn.textContent='\u2B07 \u4E00\u952E\u5168\u90E8\u5BFC\u51FA ZIP';
+  }
+
+  function downloadCanvas(canvas,filename){const a=document.createElement('a');a.href=canvas.toDataURL('image/png');a.download=filename;a.click();}
+  function canvasToBlob(canvas){return new Promise(resolve=>canvas.toBlob(resolve,'image/png'));}
+
+  (function init(){
+    const r=document.documentElement.style;
+    r.setProperty('--slot-links-color',document.getElementById('c-links-color').value);
+    r.setProperty('--slot-title-color',document.getElementById('c-title-color').value);
+    updatePresetToneState('light');
+  })();
+</script>
+</body>
+</html>
