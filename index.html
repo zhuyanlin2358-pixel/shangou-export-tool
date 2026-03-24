@@ -6,6 +6,12 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <style>
+    @font-face {
+      font-family: 'MeituanDigitalType';
+      src: url('fonts/MeituanDigitalType-Bold.ttf') format('truetype');
+      font-weight: 700;
+      font-style: normal;
+    }
     :root {
       --btn-active-from:   #FF3060;
       --btn-active-to:     #FF7030;
@@ -308,12 +314,30 @@
       position: absolute; top: 22px; left: 50%; transform: translateX(-50%);
       width: 72px; height: 72px; object-fit: contain;
     }
+    /* 产品图+标签：72×72，距底部文字11px（bottom文字bottom:8px + line-height≈16px + 11px = 35px） */
     .prize-product-placeholder {
-      position: absolute; top: 22px; left: 50%; transform: translateX(-50%);
+      position: absolute; bottom: 35px; left: 50%; transform: translateX(-50%);
       width: 72px; height: 72px;
       background: repeating-conic-gradient(#E8E8E8 0% 25%, #F8F8F8 0% 50%) 0 0/8px 8px;
-      border-radius: 6px; display: flex; align-items: center; justify-content: center;
-      font-size: 10px; color: #bbb; cursor: pointer;
+      border-radius: 6px; overflow: hidden;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; color: #bbb; cursor: grab;
+    }
+    .prize-product-placeholder:active { cursor: grabbing; }
+    /* 产品图+虚线：77×78，距底部文字11px */
+    .prize-product-placeholder.dashed-size {
+      width: 77px; height: 78px;
+    }
+    /* 图片本身：absolute 居中，不拉伸，可通过 transform 缩放 */
+    .prize-product-placeholder img.prize-img-inner {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%) scale(1);
+      max-width: none; max-height: none;
+      width: auto; height: auto;
+      min-width: 100%; min-height: 100%;
+      object-fit: contain;
+      user-select: none; -webkit-user-drag: none;
+      display: none;
     }
 
     /* --- 虚线边框型（无标签，虚线边框） --- */
@@ -328,7 +352,7 @@
     }
     .prize-amount-num {
       font-size: 60px; font-weight: 700; color: #812D16;
-      font-family: 'MTNum', 'MeiTuanNumber', 'PingFang SC', sans-serif; line-height: 1;
+      font-family: 'MeituanDigitalType', 'PingFang SC', sans-serif; line-height: 1;
     }
     .prize-amount-unit {
       font-size: 16px; font-weight: 600; color: #812D16;
@@ -772,8 +796,8 @@
           <div class="prize-card" id="prize1-card">
             <div class="prize-tag" id="prize1-tag-el"><span id="prize1-tag-text">无门槛优惠券</span></div>
             <div class="prize-product-placeholder" id="prize1-img-wrap">
-              <img id="prize1-img-el" src="" alt="" style="display:none;width:72px;height:72px;object-fit:contain;position:absolute;top:0;left:0;">
-              <span id="prize1-img-hint" style="font-size:9px;color:#bbb;text-align:center;line-height:1.4">点击左侧<br>上传图片</span>
+              <img id="prize1-img-el" src="" alt="" class="prize-img-inner">
+              <span id="prize1-img-hint" style="font-size:9px;color:#bbb;text-align:center;line-height:1.4;pointer-events:none">点击左侧<br>上传图片</span>
             </div>
             <div class="prize-amount" id="prize1-amount-el" style="display:none">
               <span class="prize-amount-num" id="prize1-amount-num">30</span>
@@ -801,9 +825,9 @@
         <div class="prize-card-wrap" id="asset-prize-2">
           <div class="prize-card dashed-type" id="prize2-card">
             <div class="prize-tag" id="prize2-tag-el" style="display:none"><span id="prize2-tag-text">零食免单券</span></div>
-            <div class="prize-product-placeholder" id="prize2-img-wrap">
-              <img id="prize2-img-el" src="" alt="" style="display:none;width:72px;height:72px;object-fit:contain;position:absolute;top:0;left:0;">
-              <span id="prize2-img-hint" style="font-size:9px;color:#bbb;text-align:center;line-height:1.4">点击左侧<br>上传图片</span>
+            <div class="prize-product-placeholder dashed-size" id="prize2-img-wrap">
+              <img id="prize2-img-el" src="" alt="" class="prize-img-inner">
+              <span id="prize2-img-hint" style="font-size:9px;color:#bbb;text-align:center;line-height:1.4;pointer-events:none">点击左侧<br>上传图片</span>
             </div>
             <div class="prize-amount" id="prize2-amount-el" style="display:none">
               <span class="prize-amount-num" id="prize2-amount-num">30</span>
@@ -832,8 +856,8 @@
           <div class="prize-card thanks-type" id="prize3-card">
             <div class="prize-tag" id="prize3-tag-el" style="display:none"><span id="prize3-tag-text">无门槛优惠券</span></div>
             <div class="prize-product-placeholder" id="prize3-img-wrap" style="display:none">
-              <img id="prize3-img-el" src="" alt="" style="display:none;width:72px;height:72px;object-fit:contain;position:absolute;top:0;left:0;">
-              <span id="prize3-img-hint" style="font-size:9px;color:#bbb;text-align:center;line-height:1.4">点击左侧<br>上传图片</span>
+              <img id="prize3-img-el" src="" alt="" class="prize-img-inner">
+              <span id="prize3-img-hint" style="font-size:9px;color:#bbb;text-align:center;line-height:1.4;pointer-events:none">点击左侧<br>上传图片</span>
             </div>
             <div class="prize-amount" id="prize3-amount-el" style="display:none">
               <span class="prize-amount-num" id="prize3-amount-num">30</span>
@@ -1400,10 +1424,54 @@
     const url = URL.createObjectURL(input.files[0]);
     const imgEl = document.getElementById('prize'+n+'-img-el');
     const hint = document.getElementById('prize'+n+'-img-hint');
-    if (imgEl) { imgEl.src = url; imgEl.style.display = 'block'; }
+    if (!imgEl) return;
+    imgEl.onload = function() {
+      // 重置位置和缩放
+      imgEl._offsetX = 0; imgEl._offsetY = 0; imgEl._scale = 1;
+      imgEl.style.transform = 'translate(-50%, -50%) scale(1)';
+    };
+    imgEl.src = url;
+    imgEl.style.display = 'block';
     if (hint) hint.style.display = 'none';
     syncPreviewPanel();
   }
+
+  /* 奖品图产品图：拖拽 + 滚轮缩放（类似空态图） */
+  (function initPrizeImgDrag() {
+    [1, 2, 3].forEach(function(n) {
+      const wrap = document.getElementById('prize'+n+'-img-wrap');
+      if (!wrap) return;
+      let dragging = false, startX = 0, startY = 0, ox = 0, oy = 0;
+      function getImg() { return document.getElementById('prize'+n+'-img-el'); }
+      function applyTransform(img) {
+        const s = img._scale || 1;
+        img.style.transform = 'translate(calc(-50% + '+( img._offsetX||0)+'px), calc(-50% + '+(img._offsetY||0)+'px)) scale('+s+')';
+      }
+      wrap.addEventListener('mousedown', function(e) {
+        const img = getImg();
+        if (!img || img.style.display === 'none') return;
+        dragging = true; startX = e.clientX; startY = e.clientY;
+        ox = img._offsetX || 0; oy = img._offsetY || 0;
+        e.preventDefault();
+      });
+      document.addEventListener('mousemove', function(e) {
+        if (!dragging) return;
+        const img = getImg(); if (!img) return;
+        img._offsetX = ox + (e.clientX - startX);
+        img._offsetY = oy + (e.clientY - startY);
+        applyTransform(img);
+      });
+      document.addEventListener('mouseup', function() { dragging = false; });
+      wrap.addEventListener('wheel', function(e) {
+        const img = getImg();
+        if (!img || img.style.display === 'none') return;
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? -0.08 : 0.08;
+        img._scale = Math.min(4, Math.max(0.1, (img._scale || 1) + delta));
+        applyTransform(img);
+      }, { passive: false });
+    });
+  })();
 
   async function exportPrize(n) {
     const wrap = document.getElementById('asset-prize-'+n);
