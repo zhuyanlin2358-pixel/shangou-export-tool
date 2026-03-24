@@ -1226,10 +1226,21 @@
     if(file.type!=='image/png'){showToast('\u274C \u8BF7\u4E0A\u4F20 PNG \u683C\u5F0F\u7684\u56FE\u7247');input.value='';return;}
     const url=URL.createObjectURL(file);
     const img=document.getElementById('empty-illus');
-    img.onload=function(){img._offsetX=0;img._offsetY=0;img._scale=1;img.style.transform='translate(-50%,-50%) scale(1)';const slider=document.getElementById('c-empty-scale');if(slider){slider.value=100;document.getElementById('c-empty-scale-val').textContent='100%';}};
+    img.onload=function(){
+      img._offsetX=0;img._offsetY=0;img._scale=1;img.style.transform='translate(-50%,-50%) scale(1)';
+      const slider=document.getElementById('c-empty-scale');
+      if(slider){slider.value=100;document.getElementById('c-empty-scale-val').textContent='100%';}
+      // 同步到实时预览区
+      var previewImg=document.getElementById('preview-empty-img');
+      if(previewImg){previewImg.src=img.src;previewImg.style.transform='translate(-50%,-50%)';}
+      // 如果实时预览区当前正在显示空态 overlay，自动刷新
+      var overlay=document.getElementById('preview-empty-overlay');
+      if(overlay&&overlay.style.display!=='none'){
+        var srcText=document.getElementById('empty-text-el');
+        if(srcText)document.getElementById('preview-empty-text').textContent=srcText.textContent;
+      }
+    };
     img.src=url;
-    // 同步到实时预览区
-    var previewImg=document.getElementById('preview-empty-img');if(previewImg){previewImg.src=url;previewImg.style.transform='translate(-50%,-50%)';}
     document.getElementById('c-empty-img-name').textContent='\u5F53\u524D\uFF1A'+file.name;
   }
 
