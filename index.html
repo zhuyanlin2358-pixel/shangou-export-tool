@@ -91,6 +91,7 @@
     .slot-full .frame-layer { position:absolute;left:43px;top:76px;width:441px;height:142px;border-radius:20px;background:#FFFFFF;border:1px solid rgba(0,0,0,0.18);z-index:1; }
     .slot-full .prize-layer { position:absolute;left:43px;top:76px;width:441px;height:142px;display:flex;align-items:center;justify-content:center;gap:8px;padding:0 12px;z-index:2; }
     .slot-full .prize-layer img { width:124px;height:124px;object-fit:contain; }
+    .slot-full .prize-layer .prize-card-wrap { pointer-events:none; flex-shrink:0; }
     .slot-full .links-layer { position:absolute;top:24px;right:48px;display:flex;align-items:center;font-family:'PingFang SC',sans-serif;font-size:22px;font-weight:400;color:var(--slot-links-color);white-space:nowrap;z-index:3; }
     .slot-full .links-sep { margin:0 8px;opacity:0.6; }
     .slot-full .btn-layer { position:absolute;right:46px;top:106px;z-index:3; }
@@ -642,9 +643,9 @@
             <div class="title-layer" id="slot-title-ready">天天抽免单</div>
             <div class="frame-layer"></div>
             <div class="prize-layer" id="preview-prize-layer">
-              <img id="preview-prize-img-1" src="export-tool-site/images/prize-1.png" alt="啤酒新客券">
-              <img id="preview-prize-img-2" src="export-tool-site/images/prize-2.png" alt="零食免单券">
-              <img id="preview-prize-img-3" src="export-tool-site/images/prize-3.png" alt="零食盲盒券">
+              <div id="preview-prize-slot-1" style="width:124px;height:124px;display:flex;align-items:center;justify-content:center;flex-shrink:0"></div>
+              <div id="preview-prize-slot-2" style="width:124px;height:124px;display:flex;align-items:center;justify-content:center;flex-shrink:0"></div>
+              <div id="preview-prize-slot-3" style="width:124px;height:124px;display:flex;align-items:center;justify-content:center;flex-shrink:0"></div>
             </div>
             <div class="empty-overlay" id="preview-empty-overlay" style="display:none;position:absolute;left:19px;top:76px;width:441px;height:142px;border-radius:20px;z-index:2;background:#fff;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;">
               <div class="empty-img-wrap" style="width:230.5px;height:94px;position:relative;overflow:hidden;background:repeating-conic-gradient(#E8E8E8 0% 25%,#F8F8F8 0% 50%) 0 0/8px 8px;flex-shrink:0;">
@@ -1241,19 +1242,33 @@
     scrollToPreview();showToast('\u5DF2\u9884\u89C8\uFF1A\u8001\u864E\u673A\u7A7A\u6001\u9875');
   }
 
+  /* 把奖品图 CSS 模板 clone 到老虎机预览区 */
+  function clonePrizeToSlot(srcIdx, slotIdx) {
+    var src = document.getElementById('asset-prize-' + srcIdx);
+    var slot = document.getElementById('preview-prize-slot-' + slotIdx);
+    if (!src || !slot) return;
+    var clone = src.cloneNode(true);
+    clone.id = '';
+    clone.querySelectorAll('[id]').forEach(function(el){ el.removeAttribute('id'); });
+    clone.style.pointerEvents = 'none';
+    slot.innerHTML = '';
+    slot.appendChild(clone);
+  }
+
+  function syncPrizeToSlot() {
+    [1, 2, 3].forEach(function(n){ clonePrizeToSlot(n, n); });
+  }
+
   let _prizeQueue=[];
   function previewPrize(idx){
-    const overlay=document.getElementById('preview-empty-overlay');
-    const prizeLayer=document.getElementById('preview-prize-layer');
+    var overlay=document.getElementById('preview-empty-overlay');
+    var prizeLayer=document.getElementById('preview-prize-layer');
     if(overlay.style.display!=='none'){_prizeQueue=[];}
-    overlay.style.display='none';prizeLayer.style.display='';
-    const srcEl=document.querySelector('#asset-prize-'+idx+' img');if(!srcEl)return;
-    const imgs=[document.getElementById('preview-prize-img-1'),document.getElementById('preview-prize-img-2'),document.getElementById('preview-prize-img-3')];
+    overlay.style.display='none'; prizeLayer.style.display='';
     if(_prizeQueue.length<3){_prizeQueue.push(idx);}else{_prizeQueue.shift();_prizeQueue.push(idx);}
-    _prizeQueue.forEach((qIdx,i)=>{const qSrc=document.querySelector('#asset-prize-'+qIdx+' img');if(qSrc&&imgs[i])imgs[i].src=qSrc.src;});
+    _prizeQueue.forEach(function(qIdx, i){ clonePrizeToSlot(qIdx, i+1); });
     scrollToPreview();
-    const names=['','\u554A\u9152\u65B0\u5BA2\u5238','\u96F6\u98DF\u514D\u5355\u5238','\u96F6\u98DF\u76F2\u76D2\u5238'];
-    showToast('\u5DF2\u9884\u89C8\uFF1A\u5956\u54C1\u56FE '+(names[idx]||idx)+'\uFF08\u7B2C'+_prizeQueue.length+'\u4F4D\uFF09');
+    showToast('已预览：奖品图 ' + idx + '（第' + _prizeQueue.length + '位）');
   }
 
   function previewBtn(state){
@@ -1374,6 +1389,8 @@
       row.style.display = show.split(',').includes(type) ? '' : 'none';
     });
 
+    // 同步老虎机预览区奖品图
+    clonePrizeToSlot(n, n);
     // 同步预览面板
     syncPreviewPanel();
   }
@@ -1418,6 +1435,7 @@
   // 初始化：根据默认 type 显示/隐藏字段
   (function initPrizeFields() {
     [1, 2, 3].forEach(n => syncPrize(n));
+    setTimeout(syncPrizeToSlot, 50);
   })();
 
   async function exportAll(){
