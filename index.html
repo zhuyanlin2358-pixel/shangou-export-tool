@@ -314,9 +314,9 @@
       position: absolute; top: 22px; left: 50%; transform: translateX(-50%);
       width: 72px; height: 72px; object-fit: contain;
     }
-    /* 产品图+标签：72×72，距底部文字11px（bottom文字bottom:8px + line-height≈16px + 11px = 35px） */
+    /* 产品图+标签：72×72，距底部文字11px（bottom文字bottom:8px + line-height≈16px + 11px = 35px，再下移4px即bottom:31px） */
     .prize-product-placeholder {
-      position: absolute; bottom: 35px; left: 50%; transform: translateX(-50%);
+      position: absolute; bottom: 31px; left: 50%; transform: translateX(-50%);
       width: 72px; height: 72px;
       background: repeating-conic-gradient(#E8E8E8 0% 25%, #F8F8F8 0% 50%) 0 0/8px 8px;
       border-radius: 6px; overflow: hidden;
@@ -1488,11 +1488,18 @@
     btn.classList.add('loading'); btn.textContent = '导出中…';
     showToast('正在渲染 ' + filename + '…');
     try {
-      const canvas = await html2canvas(wrap, {
-        scale: 1, width: 124, height: 124,
+      // 截取 prize-card（111×119），再居中放到 124×124 透明画布，避免裁切
+      const cardCanvas = await html2canvas(card, {
+        scale: 1,
         useCORS: true, allowTaint: true, backgroundColor: null, logging: false
       });
-      downloadCanvas(canvas, filename + '.png');
+      const out = document.createElement('canvas');
+      out.width = 124; out.height = 124;
+      const ctx = out.getContext('2d');
+      const dx = Math.round((124 - cardCanvas.width) / 2);
+      const dy = Math.round((124 - cardCanvas.height) / 2);
+      ctx.drawImage(cardCanvas, dx, dy);
+      downloadCanvas(out, filename + '.png');
       showToast('✅ 已导出：' + filename + '.png');
     } catch(e) {
       showToast('❌ 导出失败：' + e.message);
