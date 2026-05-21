@@ -68,6 +68,74 @@
     .preview-panel { display: none; }
     body.has-preview .preview-panel { display: flex; }
     body.has-preview .main { margin-right: 360px; }
+
+    /* ===== 进入老虎机时全局暗色主题 ===== */
+    /* 平滑过渡 */
+    .sidebar, .preview-panel { transition: background 0.3s, border-color 0.3s; }
+
+    /* 左侧侧边栏 */
+    body.has-preview .sidebar { background: #0C111B; border-right-color: rgba(255,255,255,0.07); }
+    body.has-preview .sidebar-scroll { scrollbar-color: rgba(255,255,255,0.15) transparent; }
+    body.has-preview .config-mode-bar {
+      border-bottom-color: rgba(255,255,255,0.08);
+      color: rgba(255,255,255,0.38);
+    }
+    body.has-preview .config-mode-bar:hover { color: rgba(255,255,255,0.7); }
+    body.has-preview .config-mode-bar .config-comp-name { color: rgba(255,255,255,0.88); }
+    /* panel-group */
+    body.has-preview .panel-group { border-color: rgba(255,255,255,0.08); }
+    body.has-preview .panel-group-title { background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.75); }
+    body.has-preview .panel-group-title:hover { background: rgba(255,255,255,0.08); }
+    body.has-preview .panel-group-title .dot { background: rgba(255,96,128,0.8); }
+    body.has-preview .panel-group-title .arrow { color: rgba(255,255,255,0.3); }
+    body.has-preview .panel-group-body { border-top-color: rgba(255,255,255,0.06); }
+    /* 表单元素 */
+    body.has-preview .color-row label { color: rgba(255,255,255,0.55); }
+    body.has-preview .color-row input[type=text] {
+      background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.12); color: rgba(255,255,255,0.88);
+    }
+    body.has-preview .color-row input[type=color] { border-color: rgba(255,255,255,0.15); }
+    body.has-preview .color-row select {
+      background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.12); color: rgba(255,255,255,0.88);
+    }
+    body.has-preview .divider { border-top-color: rgba(255,255,255,0.07); }
+    body.has-preview div[style*="font-size:10px;color:#aaa"] { color: rgba(255,255,255,0.35) !important; }
+    body.has-preview div[style*="font-size:11px;font-weight:600"] { color: rgba(255,255,255,0.7) !important; }
+    /* 配色预设按钮 */
+    body.has-preview .preset-group-label { color: rgba(255,255,255,0.35); }
+    body.has-preview .preset-btn { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.1); color: rgba(255,255,255,0.65); }
+    body.has-preview .preset-btn:hover:not(.preset-disabled) { border-color: rgba(255,96,128,0.6); color: #FF8FAA; }
+    body.has-preview .preset-btn.active { background: rgba(255,48,96,0.2); border-color: rgba(255,48,96,0.5); color: #FF8FAA; font-weight: 600; }
+    body.has-preview .preset-btn.preset-disabled { opacity: 0.18; }
+    body.has-preview .preset-btn.recommended::after { background: rgba(255,48,96,0.85); }
+    /* upload 按钮 */
+    body.has-preview .upload-btn { background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.12); color: rgba(255,255,255,0.65); }
+    body.has-preview .upload-btn:hover { background: rgba(255,96,128,0.15); border-color: rgba(255,96,128,0.4); color: #FF8FAA; }
+    /* 空态页设置里的滑块提示 */
+    body.has-preview input[type=range] { accent-color: #FF3060; }
+
+    /* 右侧预览面板 */
+    body.has-preview .preview-panel { background: #0C111B; border-left-color: rgba(255,255,255,0.07); }
+    body.has-preview .preview-panel-header { border-bottom-color: rgba(255,255,255,0.07); }
+    body.has-preview .preview-panel .panel-group { border-color: rgba(255,255,255,0.08); }
+    body.has-preview .preview-panel .panel-group-title { background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.75); }
+    body.has-preview .preview-panel .panel-group-title:hover { background: rgba(255,255,255,0.08); }
+    body.has-preview .preview-panel .panel-group-body { border-top-color: rgba(255,255,255,0.06); }
+    body.has-preview .preview-panel h4 { color: rgba(255,255,255,0.5); }
+    body.has-preview .swatch-section-label { color: rgba(255,255,255,0.35); }
+    body.has-preview .bg-swatch { border-color: transparent; box-shadow: 0 0 0 1px rgba(255,255,255,0.15); }
+    body.has-preview .bg-swatch.active { box-shadow: 0 0 0 2px #FF3060; }
+    body.has-preview .bg-upload-zone { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.12); color: rgba(255,255,255,0.4); }
+    body.has-preview .bg-upload-zone:hover { border-color: rgba(255,96,128,0.5); color: #FF8FAA; }
+    body.has-preview .custom-color-row span { color: rgba(255,255,255,0.4); }
+    body.has-preview #panel-bg-hex { color: rgba(255,255,255,0.5); }
+    body.has-preview #panel-bg-clear { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.1); color: rgba(255,255,255,0.5); }
+    body.has-preview #panel-bg-img-name { color: rgba(255,255,255,0.3); }
+    body.has-preview .preview-panel-tip { color: rgba(255,255,255,0.25); }
+    /* 手机 mock frame */
+    body.has-preview .page-mock { border-radius: 18px; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
+    body.has-preview .page-mock-nav { background: rgba(255,255,255,0.9); }
+    body.has-preview .preview-empty-tip { color: rgba(255,255,255,0.2); }
     /* 预览 mock 框默认隐藏 */
     .page-mock { display: none; }
     .page-mock.visible { display: block; }
