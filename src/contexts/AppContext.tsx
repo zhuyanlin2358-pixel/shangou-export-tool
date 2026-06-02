@@ -1,22 +1,22 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, useRef, type ReactNode } from 'react'
 import type { ComponentId, PageId } from '@/types'
 
 interface AppContextValue {
-  // 主题
   darkMode: boolean
   toggleDarkMode: () => void
-  // 老虎机专属深色（body.has-preview）
   hasPreview: boolean
   setHasPreview: (v: boolean) => void
-  // 页面导航
   page: PageId
   currentComp: ComponentId | null
   goHome: () => void
   enterComp: (id: ComponentId) => void
   goAssets: () => void
-  // Toast
   toast: string
   showToast: (msg: string) => void
+  // 当前组件页注册的导出全部回调
+  registerExportAll: (fn: (() => void) | null) => void
+  triggerExportAll: () => void
+  hasExportAll: boolean
 }
 
 const AppContext = createContext<AppContextValue | null>(null)
@@ -27,6 +27,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [page, setPage] = useState<PageId>('home')
   const [currentComp, setCurrentComp] = useState<ComponentId | null>(null)
   const [toast, setToast] = useState('')
+  const exportAllRef = useRef<(() => void) | null>(null)
+  const [hasExportAll, setHasExportAll] = useState(false)
 
   useEffect(() => {
     localStorage.setItem('theme', darkMode ? 'dark' : 'light')
@@ -62,6 +64,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setTimeout(() => setToast(''), 2500)
   }
 
+  const registerExportAll = (fn: (() => void) | null) => {
+    exportAllRef.current = fn
+    setHasExportAll(fn !== null)
+  }
+
+  const triggerExportAll = () => exportAllRef.current?.()
+
   return (
     <AppContext.Provider value={{
       darkMode, toggleDarkMode,
@@ -69,6 +78,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       page, currentComp,
       goHome, enterComp, goAssets,
       toast, showToast,
+      registerExportAll, triggerExportAll, hasExportAll,
     }}>
       {children}
     </AppContext.Provider>

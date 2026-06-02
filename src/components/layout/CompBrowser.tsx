@@ -1,95 +1,149 @@
 import { useState } from 'react'
 import { useApp } from '@/contexts/AppContext'
-import { COMPONENT_REGISTRY, type ComponentDef } from '@/types'
+import { COMPONENT_REGISTRY, type ComponentId, type ComponentDef } from '@/types'
 
-const PRIORITY_LABELS: Record<string, string> = {
-  P0: '核心组件', P1: '标签/素材', P2: '布局组件',
-  P3: '营销组件', P4: '功能组件',
+const GROUP_ICONS: Record<string, string> = {
+  P0: '⚡', P1: '🌸', P2: '🏪', P3: '📄', P4: '🎯', P6: '👥',
 }
-
-const grouped = COMPONENT_REGISTRY.reduce<Record<string, ComponentDef[]>>((acc, c) => {
-  const p = c.priority
-  if (!acc[p]) acc[p] = []
-  acc[p].push(c)
-  return acc
-}, {})
 
 export default function CompBrowser() {
   const { enterComp } = useApp()
   const [query, setQuery] = useState('')
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({ P0: false, P4: false })
 
-  const filtered = query
-    ? COMPONENT_REGISTRY.filter(c =>
-        c.label.includes(query) || c.desc.includes(query) || c.id.includes(query)
-      )
-    : null
+  const toggle = (key: string) =>
+    setExpanded(prev => ({ ...prev, [key]: !prev[key] }))
+
+  // 搜索过滤
+  if (query.trim()) {
+    const q = query.toLowerCase()
+    const matched = COMPONENT_REGISTRY.flatMap(g => {
+      const items = g.subgroups
+        ? g.subgroups.flatMap(sg => sg.items)
+        : (g.items || [])
+      return items.filter(c => c.name.includes(q) || c.id.includes(q))
+    })
+    return (
+      <div className="flex flex-col h-full">
+        <SearchBar query={query} setQuery={setQuery} />
+        <div className="flex-1 overflow-y-auto py-1">
+          {matched.length === 0
+            ? <div className="px-4 py-8 text-center text-xs" style={{ color: 'var(--text-3)' }}>未找到组件</div>
+            : matched.map(c => <CompItem key={c.id} comp={c} onClick={() => c.status === 'done' && enterComp(c.id as ComponentId)} />)
+          }
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col h-full">
-      {/* 搜索 */}
-      <div className="px-3 py-2 border-b border-gray-100">
-        <input
-          type="text"
-          placeholder="搜索组件..."
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-          className="w-full px-3 py-1.5 text-xs bg-gray-100 rounded-lg outline-none placeholder-gray-400 focus:bg-gray-50 transition-colors"
-        />
-      </div>
+      <SearchBar query={query} setQuery={setQuery} />
+      <div className="flex-1 overflow-y-auto">
+        {COMPONENT_REGISTRY.map(g => {
+          const isOpen = expanded[g.group] ?? false
+          const allItems = g.subgroups
+            ? g.subgroups.flatMap(sg => sg.items)
+            : (g.items || [])
+          const doneCount = allItems.filter(c => c.status === 'done').length
 
-      {/* 列表 */}
-      <div className="flex-1 overflow-y-auto py-2">
-        {filtered ? (
-          <div className="px-2">
-            {filtered.map(c => <CompItem key={c.id} comp={c} onSelect={() => enterComp(c.id)} />)}
-            {filtered.length === 0 && (
-              <div className="text-center py-8 text-xs text-gray-400">未找到组件</div>
-            )}
-          </div>
-        ) : (
-          Object.entries(grouped).map(([priority, comps]) => (
-            <div key={priority} className="mb-1">
-              <div className="px-4 py-1.5 text-xs font-medium text-gray-400 flex items-center gap-2">
-                <span className="text-gray-300 font-mono">{priority}</span>
-                {PRIORITY_LABELS[priority]}
-              </div>
-              <div className="px-2">
-                {comps.map(c => (
-                  <CompItem key={c.id} comp={c} onSelect={() => c.status === 'done' && enterComp(c.id)} />
-                ))}
-              </div>
+          return (
+            <div key={g.group}>
+              {/* 分组标题 */}
+              <button
+                className="w-full flex items-center gap-2 px-4 py-2.5 text-left transition-colors hover:opacity-80"
+                onClick={() => toggle(g.group)}
+              >
+                <span className="text-sm">{GROUP_ICONS[g.group] || '📦'}</span>
+                <span className="flex-1 text-xs font-medium truncate" style={{ color: 'var(--text-1)' }}>
+                  {g.groupLabel}
+                </span>
+                {doneCount > 0 && (
+                  <span className="text-xs shrink-0" style={{ color: '#27D365' }}>{doneCount} 可用</span>
+                )}
+                <span
+                  className="text-xs shrink-0 transition-transform duration-200"
+                  style={{ color: 'var(--text-3)', transform: isOpen ? '' : 'rotate(-90deg)' }}
+                >▾</span>
+              </button>
+
+              {/* 展开内容 */}
+              {isOpen && (
+                <div className="pb-1">
+                  {g.subgroups ? (
+                    g.subgroups.map(sg => (
+                      <div key={sg.label}>
+                        <div className="px-4 py-1 text-xs" style={{ color: 'var(--text-3)', fontSize: 11 }}>
+                          {sg.label}
+                        </div>
+                        {sg.items.map(c => (
+                          <CompItem key={c.id} comp={c} indent
+                            onClick={() => c.status === 'done' && enterComp(c.id as ComponentId)} />
+                        ))}
+                      </div>
+                    ))
+                  ) : (
+                    (g.items || []).map(c => (
+                      <CompItem key={c.id} comp={c} indent
+                        onClick={() => c.status === 'done' && enterComp(c.id as ComponentId)} />
+                    ))
+                  )}
+                </div>
+              )}
             </div>
-          ))
-        )}
+          )
+        })}
       </div>
     </div>
   )
 }
 
-function CompItem({ comp, onSelect }: { comp: ComponentDef; onSelect: () => void }) {
+function SearchBar({ query, setQuery }: { query: string; setQuery: (q: string) => void }) {
+  return (
+    <div className="px-3 py-2 border-b" style={{ borderColor: 'var(--sidebar-border)' }}>
+      <input
+        type="text"
+        placeholder="搜索组件..."
+        value={query}
+        onChange={e => setQuery(e.target.value)}
+        className="w-full px-3 py-1.5 text-xs rounded-lg outline-none placeholder-gray-400 transition-colors"
+        style={{ background: 'var(--bg-subtle)', color: 'var(--text-1)' }}
+      />
+    </div>
+  )
+}
+
+function CompItem({ comp, indent = false, onClick }: {
+  comp: ComponentDef; indent?: boolean; onClick: () => void
+}) {
   const isDone = comp.status === 'done'
   return (
     <button
-      onClick={onSelect}
+      onClick={onClick}
       disabled={!isDone}
-      className={`w-full text-left px-3 py-2 rounded-lg transition-colors flex items-center gap-2 ${
-        isDone
-          ? 'hover:bg-gray-100 cursor-pointer'
-          : 'opacity-40 cursor-not-allowed'
-      }`}
+      className="w-full text-left flex items-center justify-between transition-colors"
+      style={{ padding: `6px ${indent ? '16px' : '16px'} 6px ${indent ? '28px' : '16px'}` }}
     >
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5">
-          <span className="text-xs font-medium text-gray-800 truncate">{comp.label}</span>
-          {!isDone && (
-            <span className="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded text-[10px] shrink-0">
-              即将上线
-            </span>
-          )}
-        </div>
-        <div className="text-xs text-gray-400 truncate mt-0.5">{comp.desc}</div>
+        <span
+          className="text-xs truncate block"
+          style={{ color: isDone ? 'var(--text-1)' : 'var(--text-3)' }}
+        >
+          {comp.name}
+        </span>
+        {comp.desc && isDone && (
+          <span className="text-xs block truncate" style={{ color: 'var(--text-3)', fontSize: 11 }}>
+            {comp.desc}
+          </span>
+        )}
+        {!isDone && (
+          <span className="text-xs px-1.5 py-0.5 rounded mt-0.5 inline-block"
+            style={{ background: 'var(--bg-subtle)', color: 'var(--text-3)', fontSize: 10 }}>
+            规划中
+          </span>
+        )}
       </div>
-      {isDone && <span className="text-gray-300 text-xs shrink-0">›</span>}
+      {isDone && <span className="text-xs shrink-0 ml-2" style={{ color: 'var(--text-3)' }}>›</span>}
     </button>
   )
 }

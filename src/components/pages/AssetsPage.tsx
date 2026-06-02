@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
 import type { AssetRecord } from '@/types'
-import { COMPONENT_REGISTRY } from '@/types'
+import { findComponent } from '@/types'
 
 const STATUS_LABELS = {
   pending:  { label: '待送审', color: '#f59e0b' },
@@ -61,7 +61,7 @@ export default function AssetsPage() {
       ) : (
         <div className="space-y-3">
           {[...filtered].reverse().map(record => {
-            const comp = COMPONENT_REGISTRY.find(c => c.id === record.compId)
+            const comp = findComponent(record.compId)
             const statusMeta = STATUS_LABELS[record.status]
             return (
               <div
@@ -73,7 +73,7 @@ export default function AssetsPage() {
                   <div>
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-sm font-medium" style={{ color: 'var(--text-1)' }}>
-                        {comp?.label || record.compLabel}
+                        {comp?.name || record.compLabel}
                       </span>
                       <span className="text-xs px-2 py-0.5 rounded-full font-medium"
                         style={{ background: `${statusMeta.color}18`, color: statusMeta.color }}>

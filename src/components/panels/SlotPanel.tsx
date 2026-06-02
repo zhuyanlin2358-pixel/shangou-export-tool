@@ -4,6 +4,13 @@ import { useSlot, SLOT_PRESETS } from '@/contexts/SlotContext'
 const LIGHT_PRESETS = ['pink','rose','orange','yellow','green','teal','purple']
 const DARK_PRESETS  = ['dark-red','dark-orange','dark-green','dark-blue','dark-purple']
 
+const PRESET_DOT_COLORS: Record<string, string> = {
+  pink: '#FF5518', rose: '#FF1C18', orange: '#FF5E00', yellow: '#FF4560',
+  green: '#27D365', teal: '#06B1FF', purple: '#9771FF',
+  'dark-red': '#FF6B8A', 'dark-orange': '#FFB347', 'dark-green': '#4ADE80',
+  'dark-blue': '#60A5FA', 'dark-purple': '#C084FC',
+}
+
 const BG_SWATCHES_LIGHT = ['#ffdceb','#ffdcdc','#d9f8ff','#efe9ff','#f9fed2','#fff6a8','#ffe3c7']
 const BG_SWATCHES_PROMO = ['#ff1d5e','#ff0000','#ffdf04']
 const BG_SWATCHES_DARK  = ['#01732b','#331200','#000679']
@@ -87,6 +94,7 @@ export default function SlotPanel() {
                     fontWeight: activePreset === key ? 600 : 400,
                   }}
                 >
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: PRESET_DOT_COLORS[key], display: 'inline-block', marginRight: 4, verticalAlign: 'middle', flexShrink: 0 }} />
                   {SLOT_PRESETS[key].label}
                 </button>
               ))}
@@ -106,6 +114,7 @@ export default function SlotPanel() {
                     fontWeight: activePreset === key ? 600 : 400,
                   }}
                 >
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: PRESET_DOT_COLORS[key], display: 'inline-block', marginRight: 4, verticalAlign: 'middle', flexShrink: 0 }} />
                   {SLOT_PRESETS[key].label}
                 </button>
               ))}
