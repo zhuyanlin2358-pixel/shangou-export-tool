@@ -54,6 +54,7 @@ export async function preloadFonts(): Promise<void> {
   await Promise.allSettled([
     document.fonts.load('400 16px "FZLanTingHei-M"'),
     document.fonts.load('400 16px "FZLanTingHei-DB"'),
+    document.fonts.load('400 16px "FZLanTingHei"'),
     document.fonts.load('700 16px "MeituanDigitalType"'),
   ])
 }
