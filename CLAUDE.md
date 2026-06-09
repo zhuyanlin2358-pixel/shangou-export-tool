@@ -7,8 +7,8 @@
 ## 项目概述
 
 **用途**：美团闪购业务运营/设计师自助工具，可视化配置 UI 组件、一键导出切图素材。  
-**GitHub**：`https://github.com/zhuyanlin2358-pixel/shangou-export-tool`  
-**线上（Vercel）**：`https://shangou-export-tool.vercel.app`（main 分支自动部署）  
+**GitHub**：`https://github.com/zhuyanlin2358-pixel/zhuyanlin-tool`  
+**线上（GitHub Pages）**：`https://zhuyanlin2358-pixel.github.io/zhuyanlin-tool/`（main 分支自动部署）  
 **本地路径**：`/Users/zhuyanlin/shangou-export-tool/`  
 **本地启动**：`pnpm dev`（Vite，默认 5173；如端口占用用 `--port 5178`）
 

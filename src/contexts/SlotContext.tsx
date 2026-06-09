@@ -16,7 +16,7 @@ export const SLOT_PRESETS: Record<string, SlotPreset & { label: string; tone: 'l
   'dark-purple':{ label:'深紫', tone:'dark', from:'#C084FC',to:'#E879F9',disFrom:'#6D28D9',disTo:'#5B21B6',slotFrom:'#1E0A3C',slotTo:'#5B2D8E',linksColor:'rgba(255,255,255,0.85)',titleColor:'#FFFFFF',isDark:true },
 }
 
-// Vite BASE_URL：本地 / Vercel = '/'，GitHub Pages = '/shangou-export-tool/'
+// Vite BASE_URL：本地 / Vercel = '/'，GitHub Pages = '/zhuyanlin-tool/'
 const BASE = import.meta.env.BASE_URL
 
 const INITIAL_CONFIG: SlotConfig = {
