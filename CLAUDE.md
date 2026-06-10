@@ -1,6 +1,6 @@
 # 闪购会场组件自助设计工具 — Claude Code 上下文文档
 
-> 最后更新：2026-06-04
+> 最后更新：2026-06-10
 
 ---
 
@@ -25,7 +25,7 @@
 | 动效 | GSAP 3（仅入场动画，只在挂载时执行一次） |
 | UI 组件 | Headless UI v2（Listbox 下拉） |
 | 导出 | **Canvas API（全部自绘，无 html2canvas）** + JSZip |
-| 部署 | Vercel（main 分支 push → 自动部署） |
+| 部署 | GitHub Actions → GitHub Pages（main 分支 push → 自动部署，约 40s） |
 
 > ⚠️ 已完全弃用 html2canvas，所有导出和预览均用 Canvas 2D API 自绘，确保像素级精确。
 
@@ -36,7 +36,8 @@
 ```
 src/
   App.tsx                     # 全局布局 + 页面路由（state 管理，非 react-router）
-  index.css                   # 全局样式：CSS 变量 + 滚动条 + 主题
+                              # 页面组件全部 React.lazy 按需加载（代码分割）
+  index.css                   # 全局样式：CSS 变量 + 滚动条 + 主题 + 预览图淡入动画
   contexts/
     AppContext.tsx             # 全局状态：page, currentComp, toast, hasPreview
     SlotContext.tsx            # 老虎机配置状态（config, presets, setPrize 等）
@@ -60,11 +61,15 @@ src/
       N4Panel.tsx              # N4 配置面板
       N2Panel.tsx              # N2 配置面板
     ui/
-      PanelField.tsx           # 通用字段组件：PF, PanelInput, PanelSection, ColorField, PanelListbox
+      PanelField.tsx           # 通用字段组件：PF, PanelInput, PanelTextarea,
+                              #   ColorField, PanelListbox, DisclosureGroup
   utils/
     exportUtils.ts             # 所有 Canvas 绘制函数（@2x 超采样）
+    slotStyles.ts              # 老虎机风格注册表（SLOT_STYLE_REGISTRY）
   types/
     index.ts                   # 共享类型定义
+  assets/
+    fonts/                     # 方正兰亭黑字体文件（本地，不入 git）
 ```
 
 ---
@@ -94,47 +99,88 @@ src/
 | 5 | 链接文字（我的奖品/抽奖规则） | 96×34 / 109×34 |
 | 6 | 奖品图×3 | 124×124 |
 
+### 风格注册表（slotStyles.ts）
+
+老虎机背景支持多风格扩展，每个风格定义 `drawBg` 函数 + `prizeStyle` 配色：
+
+```typescript
+SLOT_STYLE_REGISTRY = {
+  minimal: { ... },  // 常规极简：对角渐变背景
+  daily:   { ... },  // 日常活动：横向渐变 + 矩形备份7叠层（x:342 y:0 w:384 h:105 r:24）
+}
+// 新增风格：在 SLOT_STYLE_REGISTRY 加一条记录即可，其余代码不用改
+```
+
+`drawBg(ctx, W, H, { tintFrom, tintTo })` — 在已 clip 的圆角矩形内绘制背景，颜色跟随主题预设。
+
 ### Canvas 导出（exportUtils.ts）
 
 所有函数均采用 **@2x 超采样**：内部以 2x 分辨率绘制，最终 `downsample()` 缩回原尺寸，输出清晰。
 
 | 函数 | 输出 |
 |------|------|
-| `drawSlotBannerCanvas(cfg, prizeCanvases)` | 750×242（内部 1500×484） |
+| `drawSlotBannerCanvas(cfg, prizeCanvases)` | 750×242 |
 | `drawSlotBgCanvas(cfg)` | 750×242 |
-| `drawEmptyStateCanvas(imageUrl, transform, text)` | 854×284（不 downsample，本身即 @2x） |
+| `drawEmptyStateCanvas(imageUrl, transform, text)` | 854×284 |
 | `drawButtonCanvas(text, from, to)` | 194×80 |
 | `drawLinkCanvas(parts, color, w, h, fontSize)` | w×h |
-| `drawPrizeCanvas(prize, transform)` | 124×124 |
+| `drawPrizeCanvas(prize, transform, styleName?)` | 124×124 |
+| `preloadFonts()` | 预加载方正兰亭黑，Canvas 绘制前调用 |
+
+字体常量：
+- `F`  = FZLanTingHei-M（正文/链接/计数）
+- `FB` = FZLanTingHei-DB（标题/按钮/大字）
 
 ### 三路独立预览 Build（SlotPage.tsx）
 
 ```
-buildBanner (400ms debounce) → 依赖配色/文案/奖品 → 更新 s1,s2,s4,s5
+buildBanner (400ms debounce) → 依赖配色/文案/风格 → 更新 s1,s2,s4,s5
 buildPrizes (300ms debounce) → 依赖奖品图/transform → 更新 s6_0/1/2
 buildEmpty  (100ms debounce) → 依赖空态配置 → 更新 s3
 ```
 
-所有 build 使用 `setPreviews(prev => ({...prev, ...}))` 合并更新，防止老预览图闪空。
+所有 build 使用 `setPreviews(prev => ({...prev, ...}))` 合并更新，防止旧预览图闪空。
 
-**⚠️ 重要：GSAP 动画必须在 mount-only effect（`[]` 依赖）里调用，不能和 `registerExportAll` 合并。** 否则 config 任何变化都会触发标题重新动画（闪烁）。
+**⚠️ GSAP 动画必须在 mount-only effect（`[]` 依赖）里调用**，不能和 `registerExportAll` 合并，否则 config 任何变化都会触发标题重新动画（闪烁）。
+
+### 输入框（PanelField.tsx）
+
+`PanelInput` / `PanelTextarea` 采用 **controlled + startTransition** 方案：
+- 本地 `useState` 即时更新，每次按键立刻显示
+- 全局 `setConfig` 用 `startTransition` 包裹 → 低优先级渲染，不阻塞按键响应
+- IME（中文输入法）保护：`onCompositionStart/End` 防止拼音中间状态触发全局更新
+- 外部 value 变化（preset 切换）通过 `extRef` 对比同步，不覆盖正在输入的内容
 
 ### 左侧配置面板（SlotPanel.tsx）
 
 手风琴式，5 个折叠分区，同时只开一个：
-- 配色预设（浅色系/深色系）
-- 会场背景色（色板 + 自定义）
-- 文案设置（主标题文案 + 颜色）
-- 空态页设置（文案 + 插图上传 + 大小）
-- 奖品图设置（3张奖品：类型 + 标签 + 上传 + 底部文字）
+1. 风格版本（常规极简 / 日常活动 pill 选择器）
+2. 配色预设（浅色系/深色系）
+3. 文案设置（主标题文案 + 颜色）
+4. 空态页设置（文案 + 插图上传）
+5. 奖品图设置（3张奖品：类型/标签/上传/底部文字）
 
 ---
 
-## 滚动条样式
+## 性能优化
 
-- 默认透明，鼠标 hover 时显示（浅色 `rgba(0,0,0,0.15)`）
-- `.is-scrolling` class（JS 检测，900ms 自动移除）：滚动时可见
-- 深色背景（`has-preview` / `dark-mode`）：白色 `rgba(255,255,255,0.2/0.22)`
+- **代码分割**：`App.tsx` 所有页面组件用 `React.lazy` 懒加载，首屏只下载必要代码
+- **预览图淡入**：`.slot-card-preview img` 加 0.2s fadein，canvas 重建时不硬闪
+- **Canvas @2x 超采样**：内部 2x 渲染 → `downsample()` 缩回，输出清晰
+- **startTransition**：输入框全局更新标记低优先级，连续删除/输入不卡顿
+
+---
+
+## 字体
+
+方正兰亭黑系列，本机安装后通过 `@font-face` 接入 Canvas：
+
+| 文件 | family | 用途 |
+|------|--------|------|
+| FZLTHJW.TTF | FZLanTingHei-M | 正文、链接、计数 |
+| FZLTZHJW.TTF | FZLanTingHei-DB | 标题、按钮、大字 |
+
+字体文件在 `/src/assets/fonts/`，**已加入 `.gitignore`，不入 git**（公司版权字体）。
 
 ---
 
@@ -142,18 +188,32 @@ buildEmpty  (100ms debounce) → 依赖空态配置 → 更新 s3
 
 ```bash
 # 日常开发
-cd /Users/zhuyanlin/shangou-export-tool
 git add -A && git commit -m "描述" && git push origin dev
 
-# 发布到线上（Vercel 自动部署）
+# 发布到线上（GitHub Pages 自动部署）
 git checkout main && git merge dev && git push origin main && git checkout dev
+# 或直接说「推送发布」，Claude 帮你跑
 ```
 
 ---
 
-## 已知限制 / 待做
+## 已完成组件
 
-- 一拖四：占位框架，需规范文档确认精确尺寸
-- 字体：方正兰亭黑（公司字体）需用户本机安装后通过 `@font-face` 接入 Canvas
-- GIF 导出：方案确认（html2canvas 截帧 + gif.js），待开发
-- MasterGo MCP 免费版无 API 权限，用截图 + Figma MCP 替代
+| 组件 | id | 状态 |
+|------|----|------|
+| 老虎机 | slot | ✅ 完整：6类切图、手机预览、风格切换、奖品/空态/配色 |
+| N4 文字标签 | n4 | ✅ 8种变体，240×156 透明底 PNG |
+| N2 品牌Logo | n2 | ✅ 有底色/描边/素材库 |
+| 一拖四 | yituosi | 🔲 占位，尺寸待规范 |
+| 其余 | — | 🔲 GenericPage 占位 |
+
+---
+
+## 待做 / 规划中
+
+- **审核下载流程**：提交审核 → 大象群机器人通知（需用户提供 webhook URL）
+- **Skill AI 出图入口**：接美境 HTTP API，需联系 zhuxiangyu04 确认开放方案
+- **代码分割**：✅ 已完成（React.lazy）
+- **Remotion 动效**：老虎机抽奖动画 → GIF/MP4 导出（规划中）
+- **一拖四**：占位框架，规范文档确认尺寸后开发
+- **GIF 导出**：方案待定
