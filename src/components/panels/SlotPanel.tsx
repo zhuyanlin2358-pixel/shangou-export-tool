@@ -26,7 +26,7 @@ const PRESET_DOTS: Record<string,string> = {
 
 const BG_SWATCHES_LIGHT = ['#ffdceb','#ffdcdc','#d9f8ff','#efe9ff','#f9fed2','#fff6a8','#ffe3c7']
 const BG_SWATCHES_PROMO = ['#ff1d5e','#ff0000','#ffdf04']
-const BG_SWATCHES_DARK  = ['#01732b','#331200','#000679']
+const BG_SWATCHES_DARK  = ['#331200','#000679']
 
 function PresetGrid({ keys, active, onSelect }: { keys: string[]; active: string|null; onSelect: (k:string)=>void }) {
   return (
