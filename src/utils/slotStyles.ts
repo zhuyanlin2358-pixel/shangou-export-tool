@@ -7,6 +7,8 @@
 export interface SlotStyleColors {
   tintFrom: string
   tintTo: string
+  rect7From?: string
+  rect7To?: string
 }
 
 /** 奖品卡颜色配置（drawPrizeCanvas 使用） */
@@ -82,7 +84,8 @@ export const SLOT_STYLE_REGISTRY: Record<string, SlotStyleDef> = {
     label: '日常活动',
     // Figma API 精确还原（节点 48:262 蒙版VECTOR + 48:182 矩形备份7 + 圆形2柔光）
     // 两块拼接逻辑：矩形备份7在下，蒙版在上覆盖主区域，顶部弧形缺口让矩形备份7透出
-    drawBg: (ctx, W, H, _colors) => {
+    // 颜色完全跟随 preset：tintFrom/tintTo 为蒙版色，rect7From/rect7To 为叠层色
+    drawBg: (ctx, W, H, { tintFrom, tintTo, rect7From, rect7To }) => {
       ctx.save()
       skinPath(ctx, H)  // 外层 clip 防止溢出
       ctx.clip()
@@ -103,8 +106,8 @@ export const SLOT_STYLE_REGISTRY: Record<string, SlotStyleDef> = {
       ctx.closePath()
       ctx.clip()
       const rect7G = ctx.createLinearGradient(342, 0, 726, 0)
-      rect7G.addColorStop(0, '#FFD8DA')
-      rect7G.addColorStop(1, '#FFC7D4')
+      rect7G.addColorStop(0, rect7From ?? '#FFD8DA')
+      rect7G.addColorStop(1, rect7To ?? '#FFC7D4')
       ctx.fillStyle = rect7G
       ctx.fillRect(342, 0, 384, 105)
       ctx.restore()
@@ -140,8 +143,8 @@ export const SLOT_STYLE_REGISTRY: Record<string, SlotStyleDef> = {
       ctx.closePath()
       ctx.clip()
       const mainBg = ctx.createLinearGradient(SX, 0, SX + SW, 0)
-      mainBg.addColorStop(0, '#FFF2F6')
-      mainBg.addColorStop(1, '#FEDCE2')
+      mainBg.addColorStop(0, tintFrom)
+      mainBg.addColorStop(1, tintTo)
       ctx.fillStyle = mainBg
       ctx.fillRect(SX, 0, SW, H)
       ctx.restore()

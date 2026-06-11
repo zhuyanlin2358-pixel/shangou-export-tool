@@ -8,16 +8,20 @@ import {
 } from '@/components/ui/PanelField'
 import { SLOT_STYLE_LIST } from '@/utils/slotStyles'
 
-/* ── 配色预设 ── */
-const LIGHT_PRESETS = ['pink','rose','orange','yellow','green','teal','purple']
-const DARK_PRESETS  = ['dark-red','dark-orange','dark-green','dark-blue','dark-purple']
-// 大促色背景 → 推荐同色系（暖色系）浅色预设
-const WARM_PRESETS  = ['pink','rose','orange','yellow']
+/* ── 配色预设（全部来自 Figma API 精确色值）── */
+const LIGHT_PRESETS = ['qinrenfen','dacuhong','huang','ju','lan','lv','qing']
+const DARK_PRESETS  = ['nianhuo','zi']
+const WARM_PRESETS  = ['qinrenfen','dacuhong','ju']
 const PRESET_DOTS: Record<string,string> = {
-  pink:'#FF5518', rose:'#FF1C18', orange:'#FF5E00', yellow:'#FF4560',
-  green:'#27D365', teal:'#06B1FF', purple:'#9771FF',
-  'dark-red':'#FF6B8A','dark-orange':'#FFB347','dark-green':'#4ADE80',
-  'dark-blue':'#60A5FA','dark-purple':'#C084FC',
+  qinrenfen: '#F952FF',
+  dacuhong:  '#FF3048',
+  huang:     '#FFECAD',
+  ju:        '#FF7632',
+  lan:       '#88F4FE',
+  lv:        '#46E800',
+  qing:      '#46E800',
+  nianhuo:   '#FF5F5F',
+  zi:        '#6E4BC3',
 }
 
 const BG_SWATCHES_LIGHT = ['#ffdceb','#ffdcdc','#d9f8ff','#efe9ff','#f9fed2','#fff6a8','#ffe3c7']

@@ -1,19 +1,82 @@
 import { createContext, useContext, useState, type ReactNode } from 'react'
 import type { SlotConfig, SlotPreset } from '@/types'
 
+// 9 套配色完全来自 Figma API（情人粉/大促红/黄色/橘色/蓝色/绿色/青色/年货红/紫色）
 export const SLOT_PRESETS: Record<string, SlotPreset & { label: string; tone: 'light' | 'dark' }> = {
-  pink:        { label:'粉红', tone:'light', from:'#FF5518',to:'#FE10A8',disFrom:'#FFBDD0',disTo:'#FFD0B0',slotFrom:'#FFE1FA',slotTo:'#FFC9F3',linksColor:'#8f8f8f',titleColor:'#f00068',isDark:false },
-  rose:        { label:'玫红', tone:'light', from:'#FF1C18',to:'#FE106F',disFrom:'#FFB3CE',disTo:'#FFC8D8',slotFrom:'#FFE1E6',slotTo:'#FFC9D6',linksColor:'#8f8f8f',titleColor:'#FF1C18',isDark:false },
-  teal:        { label:'蓝绿', tone:'light', from:'#06B1FF',to:'#0596FD',disFrom:'#A8E6F0',disTo:'#C0F0F8',slotFrom:'#C8F9FF',slotTo:'#81F3FE',linksColor:'#8f8f8f',titleColor:'#06B1FF',isDark:false },
-  purple:      { label:'蓝紫', tone:'light', from:'#9771FF',to:'#2D30FF',disFrom:'#DDD6FE',disTo:'#EDE9FE',slotFrom:'#E8E6FF',slotTo:'#D4D0FF',linksColor:'#8f8f8f',titleColor:'#9771FF',isDark:false },
-  green:       { label:'绿色', tone:'light', from:'#27D365',to:'#00C24C',disFrom:'#A8E6C4',disTo:'#C8F5D8',slotFrom:'#E8FED4',slotTo:'#D3FFB2',linksColor:'#8f8f8f',titleColor:'#27D365',isDark:false },
-  yellow:      { label:'黄橙', tone:'light', from:'#FF4560',to:'#FF0036',disFrom:'#FFE8A0',disTo:'#FFF3C0',slotFrom:'#FFF7D3',slotTo:'#FFE9A5',linksColor:'#8f8f8f',titleColor:'#FF4560',isDark:false },
-  orange:      { label:'橙色', tone:'light', from:'#FF5E00',to:'#FF2500',disFrom:'#FFD8A8',disTo:'#FFE8A8',slotFrom:'#FFE8D8',slotTo:'#FFD3B4',linksColor:'#8f8f8f',titleColor:'#FF5E00',isDark:false },
-  'dark-red':  { label:'深红', tone:'dark',  from:'#FF6B8A',to:'#FF9060',disFrom:'#C0392B',disTo:'#A93226',slotFrom:'#8B1A2A',slotTo:'#C0392B',linksColor:'rgba(255,255,255,0.85)',titleColor:'#FFFFFF',isDark:true },
-  'dark-orange':{ label:'深橙', tone:'dark', from:'#FFB347',to:'#FFD700',disFrom:'#B8620A',disTo:'#9A5200',slotFrom:'#7A4500',slotTo:'#B8620A',linksColor:'rgba(255,255,255,0.85)',titleColor:'#FFFFFF',isDark:true },
-  'dark-green':{ label:'深绿', tone:'dark',  from:'#4ADE80',to:'#86EFAC',disFrom:'#166534',disTo:'#14532D',slotFrom:'#052E16',slotTo:'#166534',linksColor:'rgba(255,255,255,0.85)',titleColor:'#FFFFFF',isDark:true },
-  'dark-blue': { label:'深蓝', tone:'dark',  from:'#60A5FA',to:'#93C5FD',disFrom:'#1E40AF',disTo:'#1E3A8A',slotFrom:'#0A1628',slotTo:'#1A3A6B',linksColor:'rgba(255,255,255,0.85)',titleColor:'#FFFFFF',isDark:true },
-  'dark-purple':{ label:'深紫', tone:'dark', from:'#C084FC',to:'#E879F9',disFrom:'#6D28D9',disTo:'#5B21B6',slotFrom:'#1E0A3C',slotTo:'#5B2D8E',linksColor:'rgba(255,255,255,0.85)',titleColor:'#FFFFFF',isDark:true },
+  // ── 浅色系（8款）────────────────────────────────────────────────────────────
+  qinrenfen: {
+    label: '情人粉', tone: 'light',
+    from: '#F952FF', to: '#FF443C',
+    disFrom: '#FF3048', disTo: '#FF035D',
+    slotFrom: '#FFEDF6', slotTo: '#FFCEF4',
+    rect7From: '#FFF0F8', rect7To: '#FFCCF8',
+    linksColor: '#9D9D9D', titleColor: '#770101', isDark: false,
+  },
+  dacuhong: {
+    label: '大促红', tone: 'light',
+    from: '#FF3048', to: '#FF2D5D',
+    disFrom: '#FF3048', disTo: '#FF035D',
+    slotFrom: '#FFF2F6', slotTo: '#FEDCE2',
+    rect7From: '#FFD8DA', rect7To: '#FFC7D4',
+    linksColor: '#9D9D9D', titleColor: '#770101', isDark: false,
+  },
+  huang: {
+    label: '黄色', tone: 'light',
+    from: '#FF3048', to: '#FF2D5D',
+    disFrom: '#FF3048', disTo: '#FF035D',
+    slotFrom: '#FFF6CE', slotTo: '#FFECAD',
+    rect7From: '#FFE4A7', rect7To: '#FFE8A5',
+    linksColor: '#9D9D9D', titleColor: '#AE0000', isDark: false,
+  },
+  ju: {
+    label: '橘色', tone: 'light',
+    from: '#FF3328', to: '#FF7632',
+    disFrom: '#FF3328', disTo: '#FF7632',
+    slotFrom: '#FFE5D0', slotTo: '#FBE8D8',
+    rect7From: '#FFE4CE', rect7To: '#FFD2B0',
+    linksColor: '#9D9D9D', titleColor: '#AE0000', isDark: false,
+  },
+  lan: {
+    label: '蓝色', tone: 'light',
+    from: '#31E100', to: '#87DE0D',
+    disFrom: '#0598FE', disTo: '#06AFFE',
+    slotFrom: '#B8F8FF', slotTo: '#88F4FE',
+    rect7From: '#27D5FE', rect7To: '#1BD7F8',
+    linksColor: '#9D9D9D', titleColor: '#008CF1', isDark: false,
+  },
+  lv: {
+    label: '绿色', tone: 'light',
+    from: '#46E800', to: '#69E129',
+    disFrom: '#46E800', disTo: '#69E129',
+    slotFrom: '#F9FFF0', slotTo: '#E8FCD1',
+    rect7From: '#CDFCA9', rect7To: '#B6FF7D',
+    linksColor: '#9D9D9D', titleColor: '#45CA00', isDark: false,
+  },
+  qing: {
+    label: '青色', tone: 'light',
+    from: '#46E800', to: '#69E129',
+    disFrom: '#46E800', disTo: '#69E129',
+    slotFrom: '#F9FFF0', slotTo: '#E8FCD1',
+    rect7From: '#CDFCA9', rect7To: '#B6FF7D',
+    linksColor: '#9D9D9D', titleColor: '#45CA00', isDark: false,
+  },
+  nianhuo: {
+    label: '年货红', tone: 'dark',
+    from: '#FFDCAB', to: '#FFF9C9',
+    disFrom: '#FFDCAB', disTo: '#FFF9C9',
+    slotFrom: '#FF5F5F', slotTo: '#FF5B60',
+    rect7From: '#FF4248', rect7To: '#FF7073',
+    linksColor: '#9D9D9D', titleColor: '#FFFFFF', isDark: true,
+  },
+  // ── 深色（1款）────────────────────────────────────────────────────────────
+  zi: {
+    label: '紫色', tone: 'dark',
+    from: '#FED7BF', to: '#FCF0E3',
+    disFrom: '#FF3328', disTo: '#FF7632',
+    slotFrom: '#3819A2', slotTo: '#6E4BC3',
+    rect7From: '#5A2EE3', rect7To: '#231355',
+    linksColor: '#9D9D9D', titleColor: '#FFFFFF', isDark: true,
+  },
 }
 
 // Vite BASE_URL：本地 / Vercel = '/'，GitHub Pages = '/zhuyanlin-tool/'
@@ -22,14 +85,16 @@ const BASE = import.meta.env.BASE_URL
 const INITIAL_CONFIG: SlotConfig = {
   bgColor: '#FFF5F8',
   bgImageUrl: '',
-  btnActiveFrom: '#FF5518',
-  btnActiveTo: '#FE10A8',
-  btnDisabledFrom: '#FFBDD0',
-  btnDisabledTo: '#FFD0B0',
-  slotTintFrom: '#FFE1FA',
-  slotTintTo: '#FFC9F3',
-  linksColor: '#8f8f8f',
-  titleColor: '#f00068',
+  btnActiveFrom: '#FF3048',
+  btnActiveTo: '#FF2D5D',
+  btnDisabledFrom: '#FF3048',
+  btnDisabledTo: '#FF035D',
+  slotTintFrom: '#FFF2F6',
+  slotTintTo: '#FEDCE2',
+  slotRect7From: '#FFD8DA',
+  slotRect7To: '#FFC7D4',
+  linksColor: '#9D9D9D',
+  titleColor: '#770101',
   titleText: '惊喜抽奖',
   emptyText: '活动太火爆，请稍后重试...',
   emptyImageUrl: `${BASE}empty-illus.png`,
@@ -66,7 +131,7 @@ const SlotContext = createContext<SlotContextValue | null>(null)
 
 export function SlotProvider({ children }: { children: ReactNode }) {
   const [config, setConfigState] = useState<SlotConfig>(INITIAL_CONFIG)
-  const [activePreset, setActivePreset] = useState<string | null>('pink')
+  const [activePreset, setActivePreset] = useState<string | null>('dacuhong')
   const [activeStep, setActiveStep] = useState(1)
 
   const setConfig = (patch: Partial<SlotConfig>) =>
@@ -83,6 +148,8 @@ export function SlotProvider({ children }: { children: ReactNode }) {
       btnDisabledTo: p.disTo,
       slotTintFrom: p.slotFrom,
       slotTintTo: p.slotTo,
+      slotRect7From: p.rect7From,
+      slotRect7To: p.rect7To,
       linksColor: p.linksColor,
       titleColor: p.titleColor,
       tone: p.tone,

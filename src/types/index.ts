@@ -163,6 +163,8 @@ export interface SlotPreset {
   disTo: string
   slotFrom: string
   slotTo: string
+  rect7From: string   // 矩形备份7 渐变起始色（日常活动背景叠层）
+  rect7To: string     // 矩形备份7 渐变结束色
   linksColor: string
   titleColor: string
   isDark: boolean
@@ -195,6 +197,8 @@ export interface SlotConfig {
   btnDisabledTo: string
   slotTintFrom: string
   slotTintTo: string
+  slotRect7From: string
+  slotRect7To: string
   linksColor: string
   titleColor: string
   titleText: string

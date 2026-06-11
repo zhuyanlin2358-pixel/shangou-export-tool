@@ -85,6 +85,7 @@ function roundedRect(
 
 export interface BannerConfig {
   slotTintFrom: string; slotTintTo: string
+  slotRect7From?: string; slotRect7To?: string
   titleText: string;    titleColor: string
   linksColor: string
   btnActiveFrom: string; btnActiveTo: string
@@ -103,7 +104,7 @@ export async function drawSlotBannerCanvas(
   ctx.scale(2, 2)
 
   // 背景：调用风格注册表（背景在各自的702×242区域内自绘，无全宽clip）
-  getSlotStyle(cfg.slotStyle).drawBg(ctx, W, H, { tintFrom: cfg.slotTintFrom, tintTo: cfg.slotTintTo })
+  getSlotStyle(cfg.slotStyle).drawBg(ctx, W, H, { tintFrom: cfg.slotTintFrom, tintTo: cfg.slotTintTo, rect7From: cfg.slotRect7From, rect7To: cfg.slotRect7To })
 
   // 白色奖品框（Figma 13:431：白色 + 底部淡粉渐变 + 白色描边 + 内阴影）
   roundedRect(ctx, 43, 75, 427, 142, 24)
@@ -496,7 +497,7 @@ export function drawSlotBgCanvas(cfg: Pick<BannerConfig, 'slotTintFrom' | 'slotT
   const ctx = canvas.getContext('2d')!
   ctx.scale(2, 2)
 
-  getSlotStyle(cfg.slotStyle).drawBg(ctx, W, H, { tintFrom: cfg.slotTintFrom, tintTo: cfg.slotTintTo })
+  getSlotStyle(cfg.slotStyle).drawBg(ctx, W, H, { tintFrom: cfg.slotTintFrom, tintTo: cfg.slotTintTo, rect7From: cfg.slotRect7From, rect7To: cfg.slotRect7To })
   roundedRect(ctx, 43, 75, 427, 142, 24)
   const boxFill2 = ctx.createLinearGradient(43, 75, 43, 217)
   boxFill2.addColorStop(0, '#FFFFFF'); boxFill2.addColorStop(0.67, '#FFFFFF')

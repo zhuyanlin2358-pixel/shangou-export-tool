@@ -141,19 +141,17 @@ export default function PreviewPanel() {
               <div style={{
                 width: SLOT_W, height: 242,
                 position: 'relative', overflow: 'hidden',
-                // daily 用 Figma 精确色，minimal 用主题预设色
-                background: config.slotStyle === 'daily'
-                  ? 'linear-gradient(90deg, #FFF2F6, #FEDCE2)'
-                  : `linear-gradient(90deg, ${config.slotTintFrom}, ${config.slotTintTo})`,
+                // 背景色完全跟随 preset（daily/minimal 均使用 slotTintFrom/To）
+                background: `linear-gradient(90deg, ${config.slotTintFrom}, ${config.slotTintTo})`,
                 borderRadius: 20,
               }}>
-                {/* daily style：矩形备份7（Figma精确色）+ 真实箭头图片 */}
+                {/* daily style：矩形备份7（跟随 preset 的 rect7 颜色）+ 真实箭头图片 */}
                 {config.slotStyle === 'daily' && (<>
                   <div style={{
                     position: 'absolute', left: 342, top: 0,
                     width: 384, height: 105,
                     borderRadius: '24px 0 0 24px',
-                    background: 'linear-gradient(90deg, #FFD8DA, #FFC7D4)',
+                    background: `linear-gradient(90deg, ${config.slotRect7From ?? '#FFD8DA'}, ${config.slotRect7To ?? '#FFC7D4'})`,
                     pointerEvents: 'none',
                   }} />
                   <img src={`${import.meta.env.BASE_URL}arrow-left.png`} alt=""
