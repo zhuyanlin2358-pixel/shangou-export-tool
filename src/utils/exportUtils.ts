@@ -167,8 +167,8 @@ export async function drawSlotBannerCanvas(
   ctx.textBaseline = 'middle'
   ctx.fillText(cfg.titleText, 43, 40)
 
-  // 链接文字（右对齐）Banner 内 28px，无 letterSpacing（Figma 节点 6:163）
-  ctx.font = `400 28px ${F}`
+  // 链接文字（右对齐）Banner 内 20px，确保不超过按钮左边界
+  ctx.font = `400 20px ${F}`
   ctx.fillStyle = cfg.linksColor
   ctx.textAlign = 'right'
   ctx.textBaseline = 'middle'
