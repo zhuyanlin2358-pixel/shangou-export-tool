@@ -47,11 +47,12 @@ export function PF({
    改用 defaultValue 让浏览器原生管理 DOM，只有外部 value 变化（preset 切换）时才命令式写 DOM。 */
 export function PanelInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
   const { className, value, onChange, ...rest } = props
-  const inputRef = useRef<HTMLInputElement>(null)
-  const composing = useRef(false)
-  const lastExtRef = useRef(String(value ?? ''))
+  const inputRef    = useRef<HTMLInputElement>(null)
+  const onChangeRef = useRef(onChange)
+  const composing   = useRef(false)
+  const lastExtRef  = useRef(String(value ?? ''))
+  onChangeRef.current = onChange   // 每次 render 同步，不用 useEffect，永远是最新函数
 
-  // 仅在外部 value 变化（如 preset 切换）时同步到 DOM
   useEffect(() => {
     const ext = String(value ?? '')
     if (ext !== lastExtRef.current && inputRef.current && !composing.current) {
@@ -68,14 +69,14 @@ export function PanelInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
       onChange={e => {
         if (composing.current) return
         lastExtRef.current = e.target.value
-        onChange?.(e)
+        onChangeRef.current?.(e)
       }}
       onCompositionStart={() => { composing.current = true }}
       onCompositionEnd={e => {
         composing.current = false
         const val = e.currentTarget.value
         lastExtRef.current = val
-        onChange?.({ target: { value: val } } as React.ChangeEvent<HTMLInputElement>)
+        onChangeRef.current?.({ target: { value: val } } as React.ChangeEvent<HTMLInputElement>)
       }}
       className={clsx(inputBase, className)}
     />
@@ -129,9 +130,11 @@ export function PanelListbox<T extends string>({
 /* ── 多行文本（同 PanelInput，非受控 defaultValue）── */
 export function PanelTextarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
   const { value, onChange, className, ...rest } = props
-  const taRef = useRef<HTMLTextAreaElement>(null)
-  const composing = useRef(false)
-  const lastExtRef = useRef(String(value ?? ''))
+  const taRef       = useRef<HTMLTextAreaElement>(null)
+  const onChangeRef = useRef(onChange)
+  const composing   = useRef(false)
+  const lastExtRef  = useRef(String(value ?? ''))
+  onChangeRef.current = onChange
 
   useEffect(() => {
     const ext = String(value ?? '')
@@ -150,14 +153,14 @@ export function PanelTextarea(props: React.TextareaHTMLAttributes<HTMLTextAreaEl
       onChange={e => {
         if (composing.current) return
         lastExtRef.current = e.target.value
-        onChange?.(e)
+        onChangeRef.current?.(e)
       }}
       onCompositionStart={() => { composing.current = true }}
       onCompositionEnd={e => {
         composing.current = false
         const val = e.currentTarget.value
         lastExtRef.current = val
-        onChange?.({ target: { value: val } } as React.ChangeEvent<HTMLTextAreaElement>)
+        onChangeRef.current?.({ target: { value: val } } as React.ChangeEvent<HTMLTextAreaElement>)
       }}
     />
   )
@@ -243,9 +246,9 @@ function hsvToHex(h: number, s: number, v: number): string {
 
 function isValidHex(v: string) { return /^#[0-9A-Fa-f]{6}$/.test(v) }
 
-/* ── 自定义颜色拾色器（原生 DOM 监听器 + pointer capture）──
-   关键修复：setHsv/setHexInput/onChangeRef 不能嵌套在 state updater 里（StrictMode 双调）。
-   用 hsvRef 实时追踪当前 HSV，在事件处理器里直接读取，三个调用分开执行。 */
+/* ── 自定义颜色拾色器（React onPointerDown/onPointerMove + setPointerCapture）──
+   完全去掉 useEffect 监听器，改用 React 合成事件，彻底避免 StrictMode 双调 / 闭包问题。
+   拖拽判断用 e.buttons > 0（react-colorful 的方案）而非 hasPointerCapture。 */
 function ColorPickerPopup({
   value, onChange, onClose, top, left,
 }: {
@@ -254,13 +257,11 @@ function ColorPickerPopup({
 }) {
   const [hsv, setHsv] = useState(() => isValidHex(value) ? hexToHsv(value) : { h: 0, s: 1, v: 1 })
   const [hexInput, setHexInput] = useState(value)
-  const popupRef = useRef<HTMLDivElement>(null)
-  const sbRef    = useRef<HTMLDivElement>(null)
-  const hueRef   = useRef<HTMLDivElement>(null)
+  const popupRef    = useRef<HTMLDivElement>(null)
   const onChangeRef = useRef(onChange)
-  const hsvRef = useRef(hsv)   // 实时镜像 hsv state，供 native 事件处理器读取（避免 stale closure）
-  useEffect(() => { onChangeRef.current = onChange }, [onChange])
-  hsvRef.current = hsv         // 每次 render 同步（同步，非 effect）
+  const hsvRef      = useRef(hsv)
+  onChangeRef.current = onChange   // 每次 render 同步，不用 useEffect
+  hsvRef.current      = hsv
 
   // 外部 value 变化时同步（preset 切换）
   useEffect(() => {
@@ -279,42 +280,26 @@ function ColorPickerPopup({
     return () => document.removeEventListener('mousedown', h)
   }, [onClose])
 
-  // ── SB 渐变区：pointer capture，事件处理器直接用 hsvRef.current.h ──
-  useEffect(() => {
-    const el = sbRef.current; if (!el) return
-    const handle = (e: PointerEvent) => {
-      if (e.type === 'pointerdown') { e.preventDefault(); el.setPointerCapture(e.pointerId) }
-      if (e.type === 'pointermove' && !el.hasPointerCapture(e.pointerId)) return
-      const r = el.getBoundingClientRect()
-      const s = clamp01((e.clientX - r.left) / r.width)
-      const v = clamp01(1 - (e.clientY - r.top) / r.height)
-      const hex = hsvToHex(hsvRef.current.h, s, v)
-      setHsv({ h: hsvRef.current.h, s, v })
-      setHexInput(hex)
-      onChangeRef.current(hex)
-    }
-    el.addEventListener('pointerdown', handle)
-    el.addEventListener('pointermove', handle)
-    return () => { el.removeEventListener('pointerdown', handle); el.removeEventListener('pointermove', handle) }
-  }, [])
+  // SB 区域更新：传入 clientX/Y 和当前 div
+  const applySB = (clientX: number, clientY: number, el: HTMLDivElement) => {
+    const r = el.getBoundingClientRect()
+    const s = clamp01((clientX - r.left) / r.width)
+    const v = clamp01(1 - (clientY - r.top) / r.height)
+    const hex = hsvToHex(hsvRef.current.h, s, v)
+    setHsv({ h: hsvRef.current.h, s, v })
+    setHexInput(hex)
+    onChangeRef.current(hex)
+  }
 
-  // ── 色相滑块：同样模式 ──
-  useEffect(() => {
-    const el = hueRef.current; if (!el) return
-    const handle = (e: PointerEvent) => {
-      if (e.type === 'pointerdown') { e.preventDefault(); el.setPointerCapture(e.pointerId) }
-      if (e.type === 'pointermove' && !el.hasPointerCapture(e.pointerId)) return
-      const r = el.getBoundingClientRect()
-      const h = clamp01((e.clientX - r.left) / r.width) * 360
-      const hex = hsvToHex(h, hsvRef.current.s, hsvRef.current.v)
-      setHsv({ ...hsvRef.current, h })
-      setHexInput(hex)
-      onChangeRef.current(hex)
-    }
-    el.addEventListener('pointerdown', handle)
-    el.addEventListener('pointermove', handle)
-    return () => { el.removeEventListener('pointerdown', handle); el.removeEventListener('pointermove', handle) }
-  }, [])
+  // 色相滑块更新
+  const applyHue = (clientX: number, el: HTMLDivElement) => {
+    const r = el.getBoundingClientRect()
+    const h = clamp01((clientX - r.left) / r.width) * 360
+    const hex = hsvToHex(h, hsvRef.current.s, hsvRef.current.v)
+    setHsv({ h, s: hsvRef.current.s, v: hsvRef.current.v })
+    setHexInput(hex)
+    onChangeRef.current(hex)
+  }
 
   const hueColor = `hsl(${hsv.h}, 100%, 50%)`
   const curHex   = hsvToHex(hsv.h, hsv.s, hsv.v)
@@ -325,11 +310,22 @@ function ColorPickerPopup({
         borderRadius: 10, overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
         width: 220, userSelect: 'none' }}
     >
-      {/* SB 渐变区 */}
-      <div ref={sbRef} style={{ width: '100%', height: 150, position: 'relative',
-          cursor: 'crosshair', background: hueColor, touchAction: 'none' }}>
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, #fff, transparent)' }} />
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent, #000)' }} />
+      {/* SB 渐变区 — React 合成事件，setPointerCapture 确保拖出仍响应 */}
+      <div
+        style={{ width: '100%', height: 150, position: 'relative',
+          cursor: 'crosshair', background: hueColor, touchAction: 'none' }}
+        onPointerDown={e => {
+          e.preventDefault()
+          e.currentTarget.setPointerCapture(e.pointerId)
+          applySB(e.clientX, e.clientY, e.currentTarget)
+        }}
+        onPointerMove={e => {
+          if (e.buttons === 0) return
+          applySB(e.clientX, e.clientY, e.currentTarget)
+        }}
+      >
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, #fff, transparent)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent, #000)', pointerEvents: 'none' }} />
         <div style={{ position: 'absolute', left: `${hsv.s * 100}%`, top: `${(1 - hsv.v) * 100}%`,
             width: 14, height: 14, borderRadius: '50%',
             border: '2px solid #fff', boxShadow: '0 0 3px rgba(0,0,0,0.5)',
@@ -338,9 +334,20 @@ function ColorPickerPopup({
 
       <div style={{ padding: '10px 12px 12px', display: 'flex', flexDirection: 'column', gap: 10 }}>
         {/* 色相滑块 */}
-        <div ref={hueRef} style={{ position: 'relative', height: 12, borderRadius: 6,
+        <div
+          style={{ position: 'relative', height: 12, borderRadius: 6,
             cursor: 'pointer', touchAction: 'none',
-            background: 'linear-gradient(to right,#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00)' }}>
+            background: 'linear-gradient(to right,#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00)' }}
+          onPointerDown={e => {
+            e.preventDefault()
+            e.currentTarget.setPointerCapture(e.pointerId)
+            applyHue(e.clientX, e.currentTarget)
+          }}
+          onPointerMove={e => {
+            if (e.buttons === 0) return
+            applyHue(e.clientX, e.currentTarget)
+          }}
+        >
           <div style={{ position: 'absolute', left: `${(hsv.h / 360) * 100}%`, top: '50%',
               width: 18, height: 18, borderRadius: '50%',
               border: '2px solid #fff', boxShadow: '0 1px 4px rgba(0,0,0,0.4)',
@@ -353,7 +360,11 @@ function ColorPickerPopup({
           <input value={hexInput} maxLength={7}
             onChange={e => {
               setHexInput(e.target.value)
-              if (isValidHex(e.target.value)) { setHsv(hexToHsv(e.target.value)); onChangeRef.current(e.target.value) }
+              if (isValidHex(e.target.value)) {
+                const next = hexToHsv(e.target.value)
+                setHsv(next)
+                onChangeRef.current(e.target.value)
+              }
             }}
             style={{ flex: 1, padding: '4px 8px', fontSize: 12, fontFamily: 'monospace',
               border: '1px solid #ddd', borderRadius: 6, outline: 'none', background: '#fafafa', color: '#333' }} />
