@@ -42,37 +42,40 @@ export function PF({
   )
 }
 
-/* ── 文本输入（controlled + IME 保护，直接同步 onChange，canvas rebuild 有自己的 debounce）── */
+/* ── 文本输入（非受控 defaultValue + 命令式 DOM 同步）──
+   原因：controlled input 下 React re-render 会与浏览器争夺 DOM 值，导致光标跳位 / 假性失焦。
+   改用 defaultValue 让浏览器原生管理 DOM，只有外部 value 变化（preset 切换）时才命令式写 DOM。 */
 export function PanelInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
   const { className, value, onChange, ...rest } = props
-  const [local, setLocal] = useState(String(value ?? ''))
+  const inputRef = useRef<HTMLInputElement>(null)
   const composing = useRef(false)
-  const extRef = useRef(String(value ?? ''))
+  const lastExtRef = useRef(String(value ?? ''))
 
+  // 仅在外部 value 变化（如 preset 切换）时同步到 DOM
   useEffect(() => {
     const ext = String(value ?? '')
-    if (ext !== extRef.current && !composing.current) {
-      extRef.current = ext
-      setLocal(ext)
+    if (ext !== lastExtRef.current && inputRef.current && !composing.current) {
+      inputRef.current.value = ext
+      lastExtRef.current = ext
     }
   }, [value])
-
-  const commit = (val: string) => {
-    if (composing.current) return
-    extRef.current = val
-    onChange?.({ target: { value: val } } as React.ChangeEvent<HTMLInputElement>)
-  }
 
   return (
     <input
       {...rest}
-      value={local}
-      onChange={e => { setLocal(e.target.value); commit(e.target.value) }}
+      ref={inputRef}
+      defaultValue={String(value ?? '')}
+      onChange={e => {
+        if (composing.current) return
+        lastExtRef.current = e.target.value
+        onChange?.(e)
+      }}
       onCompositionStart={() => { composing.current = true }}
       onCompositionEnd={e => {
         composing.current = false
-        setLocal(e.currentTarget.value)
-        commit(e.currentTarget.value)
+        const val = e.currentTarget.value
+        lastExtRef.current = val
+        onChange?.({ target: { value: val } } as React.ChangeEvent<HTMLInputElement>)
       }}
       className={clsx(inputBase, className)}
     />
@@ -123,38 +126,38 @@ export function PanelListbox<T extends string>({
   )
 }
 
-/* ── 多行文本 ── */
+/* ── 多行文本（同 PanelInput，非受控 defaultValue）── */
 export function PanelTextarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
   const { value, onChange, className, ...rest } = props
-  const [local, setLocal] = useState(String(value ?? ''))
+  const taRef = useRef<HTMLTextAreaElement>(null)
   const composing = useRef(false)
-  const extRef = useRef(String(value ?? ''))
+  const lastExtRef = useRef(String(value ?? ''))
 
   useEffect(() => {
     const ext = String(value ?? '')
-    if (ext !== extRef.current && !composing.current) {
-      extRef.current = ext
-      setLocal(ext)
+    if (ext !== lastExtRef.current && taRef.current && !composing.current) {
+      taRef.current.value = ext
+      lastExtRef.current = ext
     }
   }, [value])
-
-  const commit = (val: string) => {
-    if (composing.current) return
-    extRef.current = val
-    onChange?.({ target: { value: val } } as React.ChangeEvent<HTMLTextAreaElement>)
-  }
 
   return (
     <textarea
       {...rest}
-      value={local}
+      ref={taRef}
+      defaultValue={String(value ?? '')}
       className={clsx(inputBase, 'resize-none', className)}
-      onChange={e => { setLocal(e.target.value); commit(e.target.value) }}
+      onChange={e => {
+        if (composing.current) return
+        lastExtRef.current = e.target.value
+        onChange?.(e)
+      }}
       onCompositionStart={() => { composing.current = true }}
       onCompositionEnd={e => {
         composing.current = false
-        setLocal(e.currentTarget.value)
-        commit(e.currentTarget.value)
+        const val = e.currentTarget.value
+        lastExtRef.current = val
+        onChange?.({ target: { value: val } } as React.ChangeEvent<HTMLTextAreaElement>)
       }}
     />
   )
@@ -240,7 +243,9 @@ function hsvToHex(h: number, s: number, v: number): string {
 
 function isValidHex(v: string) { return /^#[0-9A-Fa-f]{6}$/.test(v) }
 
-/* ── 自定义颜色拾色器（原生 DOM 监听器 + pointer capture，对标 react-colorful）── */
+/* ── 自定义颜色拾色器（原生 DOM 监听器 + pointer capture）──
+   关键修复：setHsv/setHexInput/onChangeRef 不能嵌套在 state updater 里（StrictMode 双调）。
+   用 hsvRef 实时追踪当前 HSV，在事件处理器里直接读取，三个调用分开执行。 */
 function ColorPickerPopup({
   value, onChange, onClose, top, left,
 }: {
@@ -253,12 +258,15 @@ function ColorPickerPopup({
   const sbRef    = useRef<HTMLDivElement>(null)
   const hueRef   = useRef<HTMLDivElement>(null)
   const onChangeRef = useRef(onChange)
+  const hsvRef = useRef(hsv)   // 实时镜像 hsv state，供 native 事件处理器读取（避免 stale closure）
   useEffect(() => { onChangeRef.current = onChange }, [onChange])
+  hsvRef.current = hsv         // 每次 render 同步（同步，非 effect）
 
   // 外部 value 变化时同步（preset 切换）
   useEffect(() => {
     if (isValidHex(value) && value !== hsvToHex(hsv.h, hsv.s, hsv.v)) {
-      setHsv(hexToHsv(value)); setHexInput(value)
+      const next = hexToHsv(value)
+      setHsv(next); setHexInput(value)
     }
   }, [value]) // eslint-disable-line
 
@@ -271,48 +279,41 @@ function ColorPickerPopup({
     return () => document.removeEventListener('mousedown', h)
   }, [onClose])
 
-  // ── SB 渐变区：原生 pointer 监听，pointer capture 确保拖出仍响应 ──
+  // ── SB 渐变区：pointer capture，事件处理器直接用 hsvRef.current.h ──
   useEffect(() => {
     const el = sbRef.current; if (!el) return
-    const down = (e: PointerEvent) => {
-      e.preventDefault(); el.setPointerCapture(e.pointerId)
+    const handle = (e: PointerEvent) => {
+      if (e.type === 'pointerdown') { e.preventDefault(); el.setPointerCapture(e.pointerId) }
+      if (e.type === 'pointermove' && !el.hasPointerCapture(e.pointerId)) return
       const r = el.getBoundingClientRect()
       const s = clamp01((e.clientX - r.left) / r.width)
       const v = clamp01(1 - (e.clientY - r.top) / r.height)
-      setHsv(prev => { const hex = hsvToHex(prev.h, s, v); setHexInput(hex); onChangeRef.current(hex); return { h: prev.h, s, v } })
+      const hex = hsvToHex(hsvRef.current.h, s, v)
+      setHsv({ h: hsvRef.current.h, s, v })
+      setHexInput(hex)
+      onChangeRef.current(hex)
     }
-    const move = (e: PointerEvent) => {
-      if (!el.hasPointerCapture(e.pointerId)) return
-      const r = el.getBoundingClientRect()
-      const s = clamp01((e.clientX - r.left) / r.width)
-      const v = clamp01(1 - (e.clientY - r.top) / r.height)
-      setHsv(prev => { const hex = hsvToHex(prev.h, s, v); setHexInput(hex); onChangeRef.current(hex); return { h: prev.h, s, v } })
-    }
-    el.addEventListener('pointerdown', down)
-    el.addEventListener('pointermove', move)
-    return () => { el.removeEventListener('pointerdown', down); el.removeEventListener('pointermove', move) }
+    el.addEventListener('pointerdown', handle)
+    el.addEventListener('pointermove', handle)
+    return () => { el.removeEventListener('pointerdown', handle); el.removeEventListener('pointermove', handle) }
   }, [])
 
-  // ── 色相滑块：同样原生监听 ──
+  // ── 色相滑块：同样模式 ──
   useEffect(() => {
     const el = hueRef.current; if (!el) return
-    const calc = (e: PointerEvent) => {
+    const handle = (e: PointerEvent) => {
+      if (e.type === 'pointerdown') { e.preventDefault(); el.setPointerCapture(e.pointerId) }
+      if (e.type === 'pointermove' && !el.hasPointerCapture(e.pointerId)) return
       const r = el.getBoundingClientRect()
-      return Math.max(0, Math.min(360, ((e.clientX - r.left) / r.width) * 360))
+      const h = clamp01((e.clientX - r.left) / r.width) * 360
+      const hex = hsvToHex(h, hsvRef.current.s, hsvRef.current.v)
+      setHsv({ ...hsvRef.current, h })
+      setHexInput(hex)
+      onChangeRef.current(hex)
     }
-    const down = (e: PointerEvent) => {
-      e.preventDefault(); el.setPointerCapture(e.pointerId)
-      const h = calc(e)
-      setHsv(prev => { const hex = hsvToHex(h, prev.s, prev.v); setHexInput(hex); onChangeRef.current(hex); return { ...prev, h } })
-    }
-    const move = (e: PointerEvent) => {
-      if (!el.hasPointerCapture(e.pointerId)) return
-      const h = calc(e)
-      setHsv(prev => { const hex = hsvToHex(h, prev.s, prev.v); setHexInput(hex); onChangeRef.current(hex); return { ...prev, h } })
-    }
-    el.addEventListener('pointerdown', down)
-    el.addEventListener('pointermove', move)
-    return () => { el.removeEventListener('pointerdown', down); el.removeEventListener('pointermove', move) }
+    el.addEventListener('pointerdown', handle)
+    el.addEventListener('pointermove', handle)
+    return () => { el.removeEventListener('pointerdown', handle); el.removeEventListener('pointermove', handle) }
   }, [])
 
   const hueColor = `hsl(${hsv.h}, 100%, 50%)`
