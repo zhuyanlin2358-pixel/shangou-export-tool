@@ -55,7 +55,7 @@ export const SLOT_STYLE_REGISTRY: Record<string, SlotStyleDef> = {
   minimal: {
     id: 'minimal',
     label: '常规极简',
-    drawBg: (ctx, W, H, { tintFrom, tintTo }) => {
+    drawBg: (ctx, _W, H, { tintFrom, tintTo }) => {
       ctx.save()
       skinPath(ctx, H)
       ctx.clip()
@@ -85,7 +85,7 @@ export const SLOT_STYLE_REGISTRY: Record<string, SlotStyleDef> = {
     // Figma API 精确还原（节点 48:262 蒙版VECTOR + 48:182 矩形备份7 + 圆形2柔光）
     // 两块拼接逻辑：矩形备份7在下，蒙版在上覆盖主区域，顶部弧形缺口让矩形备份7透出
     // 颜色完全跟随 preset：tintFrom/tintTo 为蒙版色，rect7From/rect7To 为叠层色
-    drawBg: (ctx, W, H, { tintFrom, tintTo, rect7From, rect7To }) => {
+    drawBg: (ctx, _W, H, { tintFrom, tintTo, rect7From, rect7To }) => {
       ctx.save()
       skinPath(ctx, H)  // 外层 clip 防止溢出
       ctx.clip()

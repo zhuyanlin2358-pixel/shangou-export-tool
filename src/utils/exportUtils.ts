@@ -489,23 +489,37 @@ export async function drawEmptyStateCanvas(
   return canvas
 }
 
-/** 绘制 slot_2 背景 750×242（无奖品无按钮） */
-export function drawSlotBgCanvas(cfg: Pick<BannerConfig, 'slotTintFrom' | 'slotTintTo' | 'titleText' | 'titleColor' | 'slotStyle'>): HTMLCanvasElement {
+/** 绘制 slot_2 背景 750×242（无奖品无按钮，含主标题 + 日常活动箭头） */
+export async function drawSlotBgCanvas(
+  cfg: Pick<BannerConfig, 'slotTintFrom' | 'slotTintTo' | 'slotRect7From' | 'slotRect7To' | 'titleText' | 'titleColor' | 'slotStyle'>,
+): Promise<HTMLCanvasElement> {
   const W = 750, H = 242
   const canvas = document.createElement('canvas')
   canvas.width = W * 2; canvas.height = H * 2
   const ctx = canvas.getContext('2d')!
   ctx.scale(2, 2)
 
-  getSlotStyle(cfg.slotStyle).drawBg(ctx, W, H, { tintFrom: cfg.slotTintFrom, tintTo: cfg.slotTintTo, rect7From: cfg.slotRect7From, rect7To: cfg.slotRect7To })
-  roundedRect(ctx, 43, 75, 427, 142, 24)
-  const boxFill2 = ctx.createLinearGradient(43, 75, 43, 217)
-  boxFill2.addColorStop(0, '#FFFFFF'); boxFill2.addColorStop(0.67, '#FFFFFF')
-  boxFill2.addColorStop(1, 'rgba(255,246,249,1)')
-  ctx.fillStyle = boxFill2; ctx.fill()
-  ctx.strokeStyle = '#FFFFFF'
-  ctx.lineWidth = 1
-  ctx.stroke()
+  getSlotStyle(cfg.slotStyle).drawBg(ctx, W, H, {
+    tintFrom: cfg.slotTintFrom, tintTo: cfg.slotTintTo,
+    rect7From: cfg.slotRect7From, rect7To: cfg.slotRect7To,
+  })
+
+  // 日常活动：两侧装饰箭头（与 slot_1 完全相同）
+  if (cfg.slotStyle === 'daily') {
+    const BASE = import.meta.env.BASE_URL
+    try {
+      const [arrowL, arrowR] = await Promise.all([
+        loadImage(`${BASE}arrow-left.png`),
+        loadImage(`${BASE}arrow-right.png`),
+      ])
+      ctx.drawImage(arrowL, 31, 139, 26, 26)
+      ctx.drawImage(arrowR, 452, 139, 26, 26)
+    } catch {
+      ctx.fillStyle = 'rgba(222,152,60,0.75)'
+      ctx.beginPath(); ctx.moveTo(55,139); ctx.lineTo(31,152); ctx.lineTo(55,165); ctx.closePath(); ctx.fill()
+      ctx.beginPath(); ctx.moveTo(452,139); ctx.lineTo(478,152); ctx.lineTo(452,165); ctx.closePath(); ctx.fill()
+    }
+  }
 
   ctx.globalAlpha = 1
   ctx.beginPath()

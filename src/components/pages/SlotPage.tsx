@@ -478,14 +478,14 @@ export default function SlotPage() {
     const pcs = await Promise.all(
       config.prizes.map((p, i) => drawPrizeCanvas(p as PrizeInfo, config.prizeTransforms[i] as XfTransform, config.slotStyle))
     )
-    const [c1, c4a, c4d, c5p, c5r] = await Promise.all([
+    const [c1, c2, c4a, c4d, c5p, c5r] = await Promise.all([
       drawSlotBannerCanvas(config, pcs),
+      drawSlotBgCanvas(config),
       Promise.resolve(drawButtonCanvas('立即抽奖', config.btnActiveFrom, config.btnActiveTo)),
       Promise.resolve(drawButtonCanvas('活动已结束', config.btnDisabledFrom, config.btnDisabledTo)),
       Promise.resolve(drawLinkCanvas([{ text: '我的奖品' }], config.linksColor, 96, 34, 28, 2)),
       Promise.resolve(drawLinkCanvas([{ text: '|', opacity: 0.6 }, { text: '抽奖规则' }], config.linksColor, 109, 34, 28, 2)),
     ])
-    const c2 = drawSlotBgCanvas(config)
     setPreviews(prev => ({
       ...prev,
       s1: c1.toDataURL(), s2: c2.toDataURL(),
@@ -496,6 +496,7 @@ export default function SlotPage() {
     config.prizes, config.prizeTransforms,
     config.titleText, config.titleColor, config.linksColor,
     config.slotTintFrom, config.slotTintTo,
+    config.slotRect7From, config.slotRect7To,
     config.btnActiveFrom, config.btnActiveTo,
     config.btnDisabledFrom, config.btnDisabledTo,
     config.slotStyle,
@@ -617,7 +618,7 @@ export default function SlotPage() {
         Promise.resolve(drawLinkCanvas([{ text: '|', opacity: 0.6 }, { text: '抽奖规则' }], config.linksColor, 109, 34, 28, 2)),
         ...prizes.map(x => drawPrizeCanvas(x.prize, x.tr, config.slotStyle)),
       ])
-      const c2 = drawSlotBgCanvas(config)
+      const c2 = await drawSlotBgCanvas(config)
       const dialogBtnFiles = DIALOG_BUTTONS.map(v => ({
         canvas: drawDialogButtonCanvas(v.text, config.btnActiveFrom, config.btnActiveTo, undefined),
         name: `dialog_7_弹窗按钮_${v.label}_276x80.png`,
