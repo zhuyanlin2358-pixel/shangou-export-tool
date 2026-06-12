@@ -121,8 +121,17 @@ export default function FloorPage() {
           </span>
         </div>
 
-        {/* 预览图 */}
-        <div className="relative w-full overflow-hidden rounded-lg" style={{ maxWidth: 750 }}>
+        {/* 预览图：用 CSS background 显示背景色，Canvas 本身是透明底 */}
+        <div
+          className="relative w-full overflow-hidden rounded-lg"
+          style={{
+            maxWidth: 750,
+            // 无背景色时用棋盘格表示透明
+            background: config.bgTransparent
+              ? undefined
+              : config.bgColor,
+          }}
+        >
           {config.bgTransparent && (
             <div
               className="absolute inset-0"
@@ -142,7 +151,7 @@ export default function FloorPage() {
           ) : (
             <div
               className="relative w-full flex items-center justify-center text-xs"
-              style={{ height: 60, background: 'var(--bg)', color: 'var(--text-3)' }}
+              style={{ height: 60, color: 'var(--text-3)' }}
             >
               渲染中…
             </div>
@@ -161,7 +170,7 @@ export default function FloorPage() {
             {exporting ? '导出中…' : '导出 PNG'}
           </button>
           <span className="text-xs" style={{ color: 'var(--text-3)' }}>
-            750 × 60 · {config.bgTransparent ? '透明背景' : '含背景色'}
+            750 × 60 · 透明底 PNG（背景色仅预览用）
           </span>
         </div>
       </div>
@@ -280,7 +289,7 @@ function DecoSwatch({
       style={{
         width: 180,
         height: 15,
-        background: swatch.bgColor,
+        background: swatch.bgColor,   // CSS 背景色，Canvas 本身透明
         boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
         flexShrink: 0,
       }}

@@ -49,25 +49,27 @@ export default function FloorPanel() {
         </div>
       </DisclosureGroup>
 
-      {/* ② 背景配色 */}
-      <DisclosureGroup title="背景配色" defaultOpen>
+      {/* ② 预览背景色（导出始终透明底，背景色仅用于页面预览） */}
+      <DisclosureGroup title="预览背景色" defaultOpen>
         <div className="px-4 pb-3 space-y-3">
-          {/* 透明背景开关 */}
+          <p className="text-[10px] text-white/30 leading-snug">
+            导出 PNG 始终为透明底，背景色只在预览中显示
+          </p>
+          {/* 是否在预览中显示背景色 */}
           <div className="flex items-center justify-between">
-            <span className="text-xs text-white/55">透明背景（无底色）</span>
+            <span className="text-xs text-white/55">预览中显示背景色</span>
             <button
               onClick={() => set('bgTransparent', !config.bgTransparent)}
               className="relative w-9 h-5 rounded-full transition-colors"
-              style={{ background: config.bgTransparent ? '#FF5050' : 'rgba(255,255,255,0.1)' }}
+              style={{ background: !config.bgTransparent ? '#FF5050' : 'rgba(255,255,255,0.1)' }}
             >
               <span
                 className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all"
-                style={{ left: config.bgTransparent ? '18px' : '2px' }}
+                style={{ left: !config.bgTransparent ? '18px' : '2px' }}
               />
             </button>
           </div>
 
-          {/* 底色（透明时隐藏） */}
           {!config.bgTransparent && (
             <ColorField
               label="背景色"

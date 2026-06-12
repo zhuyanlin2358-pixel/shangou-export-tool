@@ -702,11 +702,8 @@ export async function drawFloorCanvas(cfg: FloorConfig): Promise<HTMLCanvasEleme
   const ctx = canvas.getContext('2d')!
   ctx.scale(2, 2)
 
-  // 背景（纯色，无渐变）
-  if (!cfg.bgTransparent) {
-    ctx.fillStyle = cfg.bgColor
-    ctx.fillRect(0, 0, W, H)
-  }
+  // 背景：导出始终透明底（不填充背景色）
+  // 背景色仅用于页面内预览（FloorPage 用 CSS background 叠在 <img> 下方）
 
   // 设置字体（先设置，再测量，保证 measureText 精确）
   ctx.font = `400 34px ${FB}`
